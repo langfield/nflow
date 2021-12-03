@@ -1,0 +1,10 @@
++-----+
+|nflow|
++-----+
+
+nflow helps the n's flow.
+
+Installation
+------------
+sudo apt-get install sbcl buildapp
+bash ql-install.sh
