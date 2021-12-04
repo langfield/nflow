@@ -6,13 +6,11 @@
           collect line)))
 
 ; Print an arbitrary list.
-(defun print-list (list)
- (format t "~{~A ~}~%" list))
+(defun print-list (printable-list)
+ (format t "~{~A ~}~%" printable-list))
 
 ; Main function.
 (defun main (argv)
   (write-line "hello world")
   (print-list argv)
-  (setf readme-lines (get-file (nth 1 argv)))
-  (print-list readme-lines)
-  )
+  (print-list (get-file (nth 1 argv))))
