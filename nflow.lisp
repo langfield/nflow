@@ -25,9 +25,21 @@
 (defun get-dashed-and-non-dashed-lines (lines)
   (list (remove-if (starts-with "- ") lines) (remove-if-not (starts-with "- ") lines)))
 
+(defun get-n-items (lst num)
+  (if (> num 0)
+    (cons (car lst) (get-n-items (cdr lst) (- num 1)))
+      '()))
+
+(defun slice (lst start size)
+  (if (> start 1)
+    (slice (cdr lst) (- start 1) size)
+    (get-n-items lst size)))
+
 ; Main function.
 (defun main (argv)
-  (print-list (get-dashed-and-non-dashed-lines (get-file (nth 1 argv)))))
+  (print-list (get-dashed-and-non-dashed-lines (get-file (nth 1 argv))))
+  (print (list "slice[3:6]:" (slice (get-file (nth 1 argv)) 3 3)))
+  (terpri))
   ; Read the whole file in.
   ; Get all elements after the empty line that start with "- ".
   ; Get all elements after the empty line that do not start with "- ".
