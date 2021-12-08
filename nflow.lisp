@@ -21,9 +21,13 @@
       ; Return NIL otherwise.
       (t NIL))))
 
+; Returns a list of the form ``(<non-dashed-lines> <dashed-lines>)``.
+(defun get-dashed-and-non-dashed-lines (lines)
+  (list (remove-if (starts-with "- ") lines) (remove-if-not (starts-with "- ") lines)))
+
 ; Main function.
 (defun main (argv)
-  (print-list (remove-if (starts-with "- ") (get-file (nth 1 argv)))))
+  (print-list (get-dashed-and-non-dashed-lines (get-file (nth 1 argv)))))
   ; Read the whole file in.
   ; Get all elements after the empty line that start with "- ".
   ; Get all elements after the empty line that do not start with "- ".
