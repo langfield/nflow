@@ -1,3 +1,6 @@
+(load "~/.quicklisp/setup.lisp")
+(ql:quickload :str)
+
 ; Read in a file.
 (defun get-file (filename)
   (with-open-file (stream filename)
@@ -37,9 +40,13 @@
 
 ; Main function.
 (defun main (argv)
-  (print-list (get-dashed-and-non-dashed-lines (get-file (nth 1 argv))))
-  (print (list "slice[3:6]:" (slice (get-file (nth 1 argv)) 3 3)))
-  (terpri))
+  (let* 
+    ((lines (get-file (nth 1 argv)))
+    (position-of-empty-line (position "" lines :test #'string=)))
+      (format t "lines: ~S~%" lines)
+      (format t "pos of '': ~S~%" (position "" lines :test #'string=))
+      (format t "dashed and non dashed lines: ~S~%" (get-dashed-and-non-dashed-lines lines))
+      (format t "slice: ~S~%" (slice lines position-of-empty-line 3))))
   ; Read the whole file in.
   ; Get all elements after the empty line that start with "- ".
   ; Get all elements after the empty line that do not start with "- ".
