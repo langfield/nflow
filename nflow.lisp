@@ -1,19 +1,19 @@
 (load "~/.quicklisp/setup.lisp")
 (ql:quickload :str)
 
-; Read in a file.
 (defun get-file (filename)
+  " Read in a file. "
   (with-open-file (stream filename)
     (loop for line = (read-line stream nil)
       while line
       collect line)))
 
-; Print an arbitrary list.
 (defun print-list (printable-list)
+  " Print an arbitrary list. "
   (format t "~{~A ~}~%" printable-list))
 
-; Check whether STR starts with PREFIX.
 (defun starts-with (prefix)
+  " Check whether STR starts with PREFIX. "
   (defun starts-with-prefix (str)
     (cond
       ; If STR and PREFIX match exactly, then MISMATCH returns NIL, so we must
@@ -24,23 +24,22 @@
       ; Return NIL otherwise.
       (t NIL))))
 
-; Returns a list of the form ``(<undashed-lines> <dashed-lines>)``.
 (defun get-dashed-and-undashed-lines (lines)
+  " Returns a list of the form ``(<undashed-lines> <dashed-lines>)``. "
   (list (remove-if (starts-with "- ") lines) (remove-if-not (starts-with "- ") lines)))
 
-; Get ``lst[:num]``.
 (defun get-n-items (lst num)
+  " Get ``lst[:num]``. "
   (if (> num 0)
     (cons (car lst) (get-n-items (cdr lst) (- num 1)))
       '()))
 
-; Take a slice of ``lst`` of the form ``lst[start:start + size]``.
 (defun slice (lst start size)
+  " Take a slice of ``lst`` of the form ``lst[start:start + size]``. "
   (if (> start 0)
     (slice (cdr lst) (- start 1) size)
     (get-n-items lst size)))
 
-; Print each element of a list on a new line.
 (defun print-elements-of-list (name lst)
   " Print each element of LIST on a line of its own. "
   (format t "~A:~%" name)
@@ -49,8 +48,8 @@
     (setq lst (cdr lst)))
   (terpri))
 
-; Main function.
 (defun main (argv)
+  " Main function. "
   (let*
     ((lines (get-file (nth 1 argv)))
     (position-of-empty-line (position "" lines :test #'string=))
@@ -72,4 +71,4 @@
 ; Get all elements after the empty line that start with "- ". (DONE)
 ; Get all elements after the empty line that do not start with "- ". (DONE)
 ; Move the dashed lines to just before the empty line in the sequence. (DONE)
-; Put the new list back on the file.
+; Put the new list back in the file.
