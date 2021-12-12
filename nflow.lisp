@@ -4,7 +4,7 @@
 (defun get-file (filename)
   " Read in a file. "
   (with-open-file (stream filename)
-    (loop for line = (read-line stream nil)
+    (loop for line = (read-line stream NIL)
       while line
       collect line)))
 
@@ -19,14 +19,24 @@
       ; If STR and PREFIX match exactly, then MISMATCH returns NIL, so we must
       ; return T.
       ((equal (mismatch str prefix) NIL) t)
+
       ; Return T if PREFIX is a substring of STR.
       ((>= (mismatch str prefix) 2) t)
+
       ; Return NIL otherwise.
       (t NIL))))
 
-(defun get-dashed-and-undashed-lines (lines)
-  " Returns a list of the form ``(<undashed-lines> <dashed-lines>)``. "
-  (list (remove-if (starts-with "- ") lines) (remove-if-not (starts-with "- ") lines)))
+(defun get-undashed-lines (lines)
+  " Returns a list of the undashed lines. "
+  (cond
+    ((equal (length lines) 0) '())
+    (t (remove-if (starts-with "- ") lines))))
+
+(defun get-dashed-lines (lines)
+  " Returns a list of the dashed lines. "
+  (cond
+    ((equal (length lines) 0) '())
+    (t (remove-if-not (starts-with "- ") lines))))
 
 (defun get-n-items (lst num)
   " Get ``lst[:num]``. "
@@ -41,25 +51,49 @@
     (get-n-items lst size)))
 
 (defun print-elements-of-list (name lst)
-  " Print each element of LIST on a line of its own. "
+  " Print each element of LST on a line of its own. "
   (format t "~A:~%" name)
   (loop while lst do
     (format t "~A~%" (car lst))
     (setq lst (cdr lst)))
   (terpri))
 
+(defun reflow-dashed-lines (lines)
+  (cond
+    ((equal (length lines) 0) '())
+    (t
+      (cond
+        ((equal (position "" lines :test #'string=) NIL) lines)
+        (t
+          (let*
+            ; Find the empty line (delimiter).
+            ((position-of-empty-line (position "" lines :test #'string=))
+
+            ; Get the undashed lines (excluding the delimiter line).
+            (undashed-lines (cdr (get-undashed-lines lines)))
+
+            ; Get lines above delimiter.
+            (lines-above-delimiter (slice lines 0 position-of-empty-line))
+
+            ; Get number of lines below delimiter.
+            (num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
+
+            ; Get a list of the lines below the delimiter.
+            (lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
+
+            ; Get only the dashed lines below the delimiter.
+            (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
+
+          (format t "position-of-empty-line: ~A~%" position-of-empty-line)
+          ; Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved.
+          (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))))))
+
 (defun main (argv)
   " Main function. "
   (let*
+    ; Read in the file.
     ((lines (get-file (nth 1 argv)))
-    (position-of-empty-line (position "" lines :test #'string=))
-    (dashed-undashed-pair (get-dashed-and-undashed-lines lines))
-    (undashed-lines (cdr (car dashed-undashed-pair)))
-    (lines-above-delimeter (slice lines 0 position-of-empty-line))
-    (num-lines-below-delimeter (- (- (length lines) position-of-empty-line) 1))
-    (lines-below-delimeter (slice lines (+ position-of-empty-line 1) num-lines-below-delimeter))
-    (dashed-lines-below-delimeter (nth 0 (cdr (get-dashed-and-undashed-lines lines-below-delimeter))))
-    (reflowed-lines (concatenate 'list lines-above-delimeter dashed-lines-below-delimeter '("") undashed-lines)))
+    (reflowed-lines (reflow-dashed-lines lines)))
   (terpri)
   (print-elements-of-list "lines" lines)
   (print-elements-of-list "reflowed-lines" reflowed-lines)))
