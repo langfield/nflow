@@ -58,12 +58,25 @@
     (setq lst (cdr lst)))
   (terpri))
 
+(defun dump-lines (lst)
+  " Print each element of LST on a line of its own. "
+  (loop while lst do
+    (format t "~A~%" (car lst))
+    (setq lst (cdr lst))))
+
 (defun reflow-dashed-lines (lines)
+  " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
   (cond
+
+    ; If LINES has length 0, return an empty list.
     ((equal (length lines) 0) '())
+
     (t
       (cond
+
+        ; If there is no delimiter, return LINES unchanged.
         ((equal (position "" lines :test #'string=) NIL) lines)
+
         (t
           (let*
             ; Find the empty line (delimiter).
@@ -84,8 +97,7 @@
             ; Get only the dashed lines below the delimiter.
             (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
 
-          (format t "position-of-empty-line: ~A~%" position-of-empty-line)
-          ; Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved.
+          ; Concatenate everything, adding delimiter back in.
           (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))))))
 
 (defun main (argv)
@@ -94,9 +106,7 @@
     ; Read in the file.
     ((lines (get-file (nth 1 argv)))
     (reflowed-lines (reflow-dashed-lines lines)))
-  (terpri)
-  (print-elements-of-list "lines" lines)
-  (print-elements-of-list "reflowed-lines" reflowed-lines)))
+  (dump-lines reflowed-lines)))
 
 
 ; OUTLINE
