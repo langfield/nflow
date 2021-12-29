@@ -1,5 +1,6 @@
 (load "~/.quicklisp/setup.lisp")
 (ql:quickload :str)
+(ql:quickload :numcl)
 
 (defun get-file (filename)
   " Read in a file. "
@@ -15,16 +16,7 @@
 (defun starts-with (prefix)
   " Check whether STR starts with PREFIX. "
   (defun starts-with-prefix (str)
-    (cond
-      ; If STR and PREFIX match exactly, then MISMATCH returns NIL, so we must
-      ; return T.
-      ((equal (mismatch str prefix) NIL) t)
-
-      ; Return T if PREFIX is a substring of STR.
-      ((>= (mismatch str prefix) 2) t)
-
-      ; Return NIL otherwise.
-      (t NIL))))
+    (str:starts-with? prefix str)))
 
 (defun get-undashed-lines (lines)
   " Returns a list of the undashed lines. "
