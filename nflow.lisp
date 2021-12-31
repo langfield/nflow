@@ -142,6 +142,8 @@
         ; Otherwise:
         (progn
 
+          (format t "Handling line: ~A~%" line)
+
           ; Update INDENT-LEVEL.
           (setq old-indent-level indent-level)
           (setq indent-level (count-leading-spaces line))
@@ -152,16 +154,12 @@
             ; Go to next child.
             (setq node (first-child tree))
 
-            ; Otherwise:
-            (progn
-
-              ; (format t "========= Current node:~%")
-              ; (draw-cons-tree:draw-tree node)
-
-              ; Add LINE as another child.
-              (add-child node (make-tree line))
-            )
+            ; Otherwise do nothing.
+            t
           )
+
+          ; Add LINE as another child.
+          (add-child node (make-tree line))
         )
       )
 
@@ -170,6 +168,9 @@
       (draw-cons-tree:draw-tree tree)
       (terpri)
     )
+
+    ; Print cons form of TREE.
+    (format t "Tree: ~A~%" tree)
   )
 )
 
