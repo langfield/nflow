@@ -2,6 +2,7 @@
 (ql:quickload :str)
 (ql:quickload :numcl)
 (ql:quickload :for)
+(ql:quickload :draw-cons-tree)
 
 (defun get-file (filename)
   " Read in a file. "
@@ -77,12 +78,16 @@
     ((and (subset lst1 lst2) (subset lst2 lst1)) t)
     (t nil)))
 
-; Tree utilities
+
+
+
 (defun make-tree (item)
    "it creates a new node with item."
    (cons (cons item nil) nil)
 )
+
 (defun first-child (tree)
+    " Access first child. "
    (if (null tree)
       nil
       (cdr (car tree))
@@ -90,31 +95,76 @@
 )
 
 (defun next-sibling (tree)
+  " Get next sibling. "
    (cdr tree)
 )
 (defun data (tree)
+  " Get data of tree. "
    (car (car tree))
 )
+
 (defun add-child (tree child)
+  " Add child to tree. "
    (setf (car tree) (append (car tree) child))
    tree
 )
 
-; Parse a todolist into a tree
+(defun count-leading-spaces (s)
+  " Count leading spaces of a string. "
+  (let*
+    (
+      (left-trimmed-s (str:trim-left s))
+    )
+    (- (length s) (length left-trimmed-s))
+  )
+)
+
+
 (defun parse-todo-tree (lst)
+  " Parse a todolist into a tree, preserving hierarchy. "
   (let*
     (
       ; Initialize TREE with a dummy root.
       (tree (make-tree "root"))
+      (indent-level 0)
+      (old-indent-level 0)
     )
     ; Loop over LST
     (for:for ((line over lst))
-      ; If LINE starts with a space
+
+      ; Display current INDENT-LEVEL.
+      (terpri)
+      (draw-cons-tree:draw-tree tree)
+      (terpri)
+      (format t "indent-level: ~A~%" indent-level)
+      (format t "old-indent-level: ~A~%" old-indent-level)
+
+      ; If LINE starts with a space:
       (if (str:starts-with? " " line)
-        ; Just print LINE
-        (print line)
-        ; Otherwise add LINE to the tree as a child
-        (setq tree (add-child tree (make-tree line)))
+
+        ; Update INDENT-LEVEL.
+        (progn
+          (setq old-indent-level indent-level)
+          (setq indent-level (count-leading-spaces line))
+
+          (if (> indent-level old-indent-level)
+            (progn
+              (print tree)
+              (format t "Sibling: ~A~%" (next-sibling (next-sibling (first-child tree))))
+            )
+            (print "Indent level stayed the same.")
+          )
+        )
+
+        ; Otherwise if LINE is empty:
+        (if (str:empty? line)
+
+          ; Do nothing.
+          t
+
+          ; Otherwise add LINE to the tree as a child.
+          (setq tree (add-child tree (make-tree line)))
+        )
       )
     )
     ; Print TREE
