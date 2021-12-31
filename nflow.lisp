@@ -129,19 +129,14 @@
       (indent-level 0)
       (old-indent-level 0)
       (node tree)
+      (last-child nil)
     )
     ; Loop over LST
     (for:for ((line over lst))
 
-      ; Otherwise if LINE is empty:
-      (if (str:empty? line)
-
-        ; Do nothing.
-        t
-
-        ; Otherwise:
+      ; If LINE is nonempty:
+      (if (not (str:empty? line))
         (progn
-
           (format t "Handling line: ~A~%" line)
 
           ; Update INDENT-LEVEL.
@@ -150,16 +145,15 @@
 
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
-
-            ; Go to next child.
-            (setq node (first-child tree))
-
-            ; Otherwise do nothing.
-            t
+            (progn
+              (setq node last-child)
+              (format t "Indent increased.")
+            )
           )
 
           ; Add LINE as another child.
-          (add-child node (make-tree line))
+          (setq last-child (make-tree (str:trim-left line)))
+          (add-child node last-child)
         )
       )
 
