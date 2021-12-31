@@ -77,12 +77,51 @@
     ((and (subset lst1 lst2) (subset lst2 lst1)) t)
     (t nil)))
 
+; Tree utilities
+(defun make-tree (item)
+   "it creates a new node with item."
+   (cons (cons item nil) nil)
+)
+(defun first-child (tree)
+   (if (null tree)
+      nil
+      (cdr (car tree))
+   )
+)
 
+(defun next-sibling (tree)
+   (cdr tree)
+)
+(defun data (tree)
+   (car (car tree))
+)
+(defun add-child (tree child)
+   (setf (car tree) (append (car tree) child))
+   tree
+)
 
-(defun is-list-of-only-dashed-lines (lst)
-  " Return the truth value of whether the list consists of only dashed lines. "
-  t)
-
+; Parse a todolist into a tree
+(defun parse-todo-tree (lst)
+  (let*
+    (
+      ; Initialize TREE with a dummy root.
+      (tree (make-tree "root"))
+    )
+    ; Loop over LST
+    (for:for ((line over lst))
+      ; If LINE starts with a space
+      (if (str:starts-with? " " line)
+        ; Just print LINE
+        (print line)
+        ; Otherwise add LINE to the tree as a child
+        (setq tree (add-child tree (make-tree line)))
+      )
+    )
+    ; Print TREE
+    (terpri)
+    (format t "~A~%" tree)
+  )
+)
 
 
 
@@ -123,7 +162,8 @@
             (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
 
           ; Concatenate everything, adding delimiter back in.
-          (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))))))
+          (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)
+          (parse-todo-tree lines)))))))
 
 (defun main (argv)
   " Main function. "
