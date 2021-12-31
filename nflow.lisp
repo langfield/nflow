@@ -128,48 +128,48 @@
       (tree (make-tree "root"))
       (indent-level 0)
       (old-indent-level 0)
+      (node tree)
     )
     ; Loop over LST
     (for:for ((line over lst))
 
-      ; Display current INDENT-LEVEL.
-      (terpri)
-      (draw-cons-tree:draw-tree tree)
-      (terpri)
-      (format t "indent-level: ~A~%" indent-level)
-      (format t "old-indent-level: ~A~%" old-indent-level)
+      ; Otherwise if LINE is empty:
+      (if (str:empty? line)
 
-      ; If LINE starts with a space:
-      (if (str:starts-with? " " line)
+        ; Do nothing.
+        t
 
-        ; Update INDENT-LEVEL.
+        ; Otherwise:
         (progn
+
+          ; Update INDENT-LEVEL.
           (setq old-indent-level indent-level)
           (setq indent-level (count-leading-spaces line))
 
+          ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
+
+            ; Go to next child.
+            (setq node (first-child tree))
+
+            ; Otherwise:
             (progn
-              (print tree)
-              (format t "Sibling: ~A~%" (next-sibling (next-sibling (first-child tree))))
+
+              ; (format t "========= Current node:~%")
+              ; (draw-cons-tree:draw-tree node)
+
+              ; Add LINE as another child.
+              (add-child node (make-tree line))
             )
-            (print "Indent level stayed the same.")
           )
         )
-
-        ; Otherwise if LINE is empty:
-        (if (str:empty? line)
-
-          ; Do nothing.
-          t
-
-          ; Otherwise add LINE to the tree as a child.
-          (setq tree (add-child tree (make-tree line)))
-        )
       )
+
+      ; Draw TREE.
+      (terpri)
+      (draw-cons-tree:draw-tree tree)
+      (terpri)
     )
-    ; Print TREE
-    (terpri)
-    (format t "~A~%" tree)
   )
 )
 
