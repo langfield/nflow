@@ -1,11 +1,12 @@
 (load "~/.quicklisp/setup.lisp")
 (ql:quickload :str)
 (ql:quickload :numcl)
+(ql:quickload :for)
 
 (defun get-file (filename)
   " Read in a file. "
   (with-open-file (stream filename)
-    (loop for line = (read-line stream NIL)
+    (loop for line = (read-line stream nil)
       while line
       collect line)))
 
@@ -56,6 +57,36 @@
     (format t "~A~%" (car lst))
     (setq lst (cdr lst))))
 
+(defun in-list (x lst) 
+  " Check whether X is in LST. "
+   (cond
+      ((null lst) ()) 
+      ((equal (car lst) x) lst) 
+      (t (in-list x (cdr lst)))))
+
+(defun subset (lst1 lst2) 
+  " Check whether every element in LST1 is in LST2. "
+   (cond 
+      ((null lst1) t) 
+      ((in-list (car lst1) lst2)(subset (cdr lst1) lst2)) 
+      (t ())))
+
+(defun list-equals (lst1 lst2)
+  " Check if two lists are equal. "
+  (cond
+    ((and (subset lst1 lst2) (subset lst2 lst1)) t)
+    (t nil)))
+
+
+
+(defun is-list-of-only-dashed-lines (lst)
+  " Return the truth value of whether the list consists of only dashed lines. "
+  t)
+
+
+
+
+
 (defun reflow-dashed-lines (lines)
   " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
   (cond
@@ -63,12 +94,14 @@
     ; If LINES has length 0, return an empty list.
     ((equal (length lines) 0) '())
 
+    ; Else:
     (t
       (cond
 
         ; If there is no delimiter, return LINES unchanged.
-        ((equal (position "" lines :test #'string=) NIL) lines)
+        ((equal (position "" lines :test #'string=) nil) lines)
 
+        ; Else:
         (t
           (let*
             ; Find the empty line (delimiter).
