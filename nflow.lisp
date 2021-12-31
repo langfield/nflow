@@ -130,6 +130,8 @@
       (old-indent-level 0)
       (node tree)
       (last-child nil)
+      (parent-stack '())
+      (parent nil)
     )
     ; Loop over LST
     (for:for ((line over lst))
@@ -146,17 +148,41 @@
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
             (progn
+              (setq parent-stack (append parent-stack node))
+              (format t "Parent stack: ~A~%" parent-stack)
+              (format t "Parent stack (len): ~A~%" (length parent-stack))
               (setq node last-child)
-              (format t "Indent increased.")
+              (format t "Indent increased.~%")
+            )
+
+            ; Otherwise if INDENT-LEVEL decreased:
+            (if (< indent-level old-indent-level)
+              (progn
+                (setq parent (last parent-stack))
+                (setq parent-stack (butlast parent-stack))
+                (format t "Parent stack: ~A~%" parent-stack)
+                (format t "Parent stack (len): ~A~%" (length parent-stack))
+                (setq node parent)
+              )
             )
           )
 
           ; Add LINE as another child.
           (setq last-child (make-tree (str:trim-left line)))
+          (format t "Node: ~A~%" node)
+          (format t "Last-child: ~A~%" last-child)
+          (if (list-equals node tree)
+            (format t "Tree equal.")
+            (format t "Tree not equal.")
+          )
           (add-child node last-child)
         )
       )
 
+      ; Draw NODE.
+      (terpri)
+      (draw-cons-tree:draw-tree node)
+      (terpri)
       ; Draw TREE.
       (terpri)
       (draw-cons-tree:draw-tree tree)
