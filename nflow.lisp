@@ -244,12 +244,12 @@
         (setq tree node)
       )
 
-      ; Draw TREE on each iteration.
-      (terpri)
-      (draw-cons-tree:draw-tree tree)
-      (terpri)
 
     )
+    ; Draw TREE on each iteration.
+    (terpri)
+    (draw-cons-tree:draw-tree tree)
+    (terpri)
 
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
