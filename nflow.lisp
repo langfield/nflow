@@ -139,7 +139,6 @@
       ; If LINE is nonempty:
       (if (not (str:empty? line))
         (progn
-          (format t "Handling line: ~A~%" line)
 
           ; Update INDENT-LEVEL.
           (setq old-indent-level indent-level)
@@ -149,15 +148,11 @@
           (if (> indent-level old-indent-level)
             (progn
 
-              (format t "NODE/TREE Equal: ~A~%" (equal tree node))
-
               ; Append NODE to PARENT-STACK.
               (setq parent-stack (append parent-stack node))
-              (format t "Parent stack (len): ~A~%" (length parent-stack))
 
               ; Set NODE to LAST-CREATED-CHILD.
               (setq node last-created-child)
-              (format t "Indent increased.~%")
             )
 
             ; Otherwise if INDENT-LEVEL decreased:
@@ -168,7 +163,6 @@
 
                 ; Remove PARENT from PARENT-STACK.
                 (setq parent-stack (butlast parent-stack))
-                (format t "Parent stack (len): ~A~%" (length parent-stack))
 
                 ; Set NODE to PARENT.
                 (setq node parent)
@@ -178,27 +172,25 @@
 
           ; Add LINE as another child.
           (setq last-created-child (make-tree (str:trim-left line)))
-          (format t "Node: ~A~%" node)
-          (format t "Last-child: ~A~%" last-created-child)
           (setq node (add-child node last-created-child))
         )
       )
+      ; Get a reference to the root.
+      (if (> (length parent-stack) 0)
+        (setq tree (car parent-stack))
+        (setq tree node)
+      )
+
+      ; Draw TREE on each iteration.
+      (terpri)
+      (draw-cons-tree:draw-tree tree)
+      (terpri)
 
     )
 
-    ; Get a reference to the root.
-    (if (> (length parent-stack) 0)
-      (setq tree (car parent-stack))
-      (setq tree node)
-    )
-    (terpri)
-    (draw-cons-tree:draw-tree tree)
-    (terpri)
 
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
-    ; Print cons form of NODE.
-    (format t "Node: ~A~%" node)
   )
 )
 
