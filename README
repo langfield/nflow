@@ -4,7 +4,7 @@
 
 nflow helps the n's flow.
 
-Installation
-------------
+Installation (of Lisp)
+----------------------
 sudo apt-get install sbcl buildapp
 bash ql-install.sh
