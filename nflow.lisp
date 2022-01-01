@@ -129,7 +129,7 @@
       (indent-level 0)
       (old-indent-level 0)
       (node tree)
-      (last-child nil)
+      (last-created-child nil)
       (parent-stack '())
       (parent nil)
     )
@@ -148,49 +148,57 @@
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
             (progn
+
+              (format t "NODE/TREE Equal: ~A~%" (equal tree node))
+
+              ; Append NODE to PARENT-STACK.
               (setq parent-stack (append parent-stack node))
-              (format t "Parent stack: ~A~%" parent-stack)
               (format t "Parent stack (len): ~A~%" (length parent-stack))
-              (setq node last-child)
+
+              ; Set NODE to LAST-CREATED-CHILD.
+              (setq node last-created-child)
               (format t "Indent increased.~%")
             )
 
             ; Otherwise if INDENT-LEVEL decreased:
             (if (< indent-level old-indent-level)
               (progn
+                ; Get PARENT from PARENT-STACK.
                 (setq parent (last parent-stack))
+
+                ; Remove PARENT from PARENT-STACK.
                 (setq parent-stack (butlast parent-stack))
-                (format t "Parent stack: ~A~%" parent-stack)
                 (format t "Parent stack (len): ~A~%" (length parent-stack))
+
+                ; Set NODE to PARENT.
                 (setq node parent)
               )
             )
           )
 
           ; Add LINE as another child.
-          (setq last-child (make-tree (str:trim-left line)))
+          (setq last-created-child (make-tree (str:trim-left line)))
           (format t "Node: ~A~%" node)
-          (format t "Last-child: ~A~%" last-child)
-          (if (list-equals node tree)
-            (format t "Tree equal.")
-            (format t "Tree not equal.")
-          )
-          (add-child node last-child)
+          (format t "Last-child: ~A~%" last-created-child)
+          (setq node (add-child node last-created-child))
         )
       )
 
-      ; Draw NODE.
-      (terpri)
-      (draw-cons-tree:draw-tree node)
-      (terpri)
-      ; Draw TREE.
-      (terpri)
-      (draw-cons-tree:draw-tree tree)
-      (terpri)
     )
+
+    ; Get a reference to the root.
+    (if (> (length parent-stack) 0)
+      (setq tree (car parent-stack))
+      (setq tree node)
+    )
+    (terpri)
+    (draw-cons-tree:draw-tree tree)
+    (terpri)
 
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
+    ; Print cons form of NODE.
+    (format t "Node: ~A~%" node)
   )
 )
 
