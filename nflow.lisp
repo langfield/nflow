@@ -119,6 +119,51 @@
   )
 )
 
+(defun unroll-parent-stack (parent-stack num-indents)
+  " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
+  (assert (> num-indents 0))
+  (let*
+    (
+      (parent nil)
+    )
+    (dotimes (i num-indents)
+
+      ; Get PARENT from PARENT-STACK.
+      (setq parent (last parent-stack))
+
+      ; Remove PARENT from PARENT-STACK.
+      (setq parent-stack (butlast parent-stack))
+    )
+    (list parent-stack parent)
+  )
+)
+
+
+(defun get-indent-size (delta indent-size)
+  " Get the indent size. "
+  (if (> indent-size 0)
+    indent-size
+    (abs delta)
+  )
+)
+
+(defun get-num-indents (indent-level old-indent-level indent-size line)
+  (let*
+    (
+      (indent-delta 0)
+    )
+    (setq indent-delta (- indent-level old-indent-level))
+    (format t "Indent delta: ~A~%" indent-delta)
+    (format t "Indent size: ~A~%" indent-size)
+    (setq indent-size (get-indent-size indent-delta indent-size))
+    (format t "Indent size: ~A~%" indent-size)
+    (if (not (equal (mod indent-delta indent-size) 0))
+      (error "Inconsistent indentation on line with contents: ~A~%" line)
+    )
+    (list (floor indent-delta indent-size) indent-size)
+  )
+)
+
 
 (defun parse-todo-tree (lst)
   " Parse a todolist into a tree, preserving hierarchy. "
@@ -129,9 +174,13 @@
       (indent-level 0)
       (old-indent-level 0)
       (node tree)
+      (indent-size 0)
       (last-created-child nil)
       (parent-stack '())
       (parent nil)
+      (parent-stack-pair nil)
+      (indent-num-size-pair nil)
+      (num-indents 0)
     )
     ; Loop over LST
     (for:for ((line over lst))
@@ -147,6 +196,14 @@
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
             (progn
+              (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
+              (setq num-indents (first indent-num-size-pair))
+              (setq indent-size (second indent-num-size-pair))
+
+              (assert (> num-indents 0))
+              (if (> num-indents 1)
+                (error "Indent level increased by more than 1: ~A~%" line)
+              )
 
               ; Append NODE to PARENT-STACK.
               (setq parent-stack (append parent-stack node))
@@ -158,11 +215,14 @@
             ; Otherwise if INDENT-LEVEL decreased:
             (if (< indent-level old-indent-level)
               (progn
-                ; Get PARENT from PARENT-STACK.
-                (setq parent (last parent-stack))
-
-                ; Remove PARENT from PARENT-STACK.
-                (setq parent-stack (butlast parent-stack))
+                (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
+                (setq num-indents (first indent-num-size-pair))
+                (setq indent-size (second indent-num-size-pair))
+                (assert (< num-indents 0))
+                (format t "Num indents on decrease: ~A~%" num-indents)
+                (setq parent-stack-pair (unroll-parent-stack parent-stack (- num-indents)))
+                (setq parent-stack (first parent-stack-pair))
+                (setq parent (second parent-stack-pair))
 
                 ; Set NODE to PARENT.
                 (setq node parent)
