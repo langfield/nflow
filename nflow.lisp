@@ -98,6 +98,7 @@
   " Get next sibling. "
    (cdr tree)
 )
+
 (defun data (tree)
   " Get data of tree. "
    (car (car tree))
@@ -148,18 +149,17 @@
 )
 
 (defun get-num-indents (indent-level old-indent-level indent-size line)
+  " Compute NUM-INDENTS and INDENT-SIZE from the indent levels. "
   (let*
     (
       (indent-delta 0)
     )
     (setq indent-delta (- indent-level old-indent-level))
-    (format t "Indent delta: ~A~%" indent-delta)
-    (format t "Indent size: ~A~%" indent-size)
     (setq indent-size (get-indent-size indent-delta indent-size))
-    (format t "Indent size: ~A~%" indent-size)
     (if (not (equal (mod indent-delta indent-size) 0))
       (error "Inconsistent indentation on line with contents: ~A~%" line)
     )
+    ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)
   )
 )
@@ -196,10 +196,10 @@
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
             (progn
+              ; Get NUM-INDENTS and INDENT-SIZE.
               (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
               (setq num-indents (first indent-num-size-pair))
               (setq indent-size (second indent-num-size-pair))
-
               (assert (> num-indents 0))
               (if (> num-indents 1)
                 (error "Indent level increased by more than 1: ~A~%" line)
@@ -215,11 +215,14 @@
             ; Otherwise if INDENT-LEVEL decreased:
             (if (< indent-level old-indent-level)
               (progn
+
+                ; Get NUM-INDENTS and INDENT-SIZE.
                 (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
                 (setq num-indents (first indent-num-size-pair))
                 (setq indent-size (second indent-num-size-pair))
                 (assert (< num-indents 0))
-                (format t "Num indents on decrease: ~A~%" num-indents)
+
+                ; Get updated PARENT-STACK and PARENT.
                 (setq parent-stack-pair (unroll-parent-stack parent-stack (- num-indents)))
                 (setq parent-stack (first parent-stack-pair))
                 (setq parent (second parent-stack-pair))
@@ -250,6 +253,30 @@
 
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
+    tree
+  )
+)
+
+
+(defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
+  (let*
+    (
+      (i 0)
+    )
+    (for:for ((line over lines))
+      (if (not (str:starts-with? "- " line))
+        (progn
+          (if (< i position-of-empty-line)
+            (error "Line: '~A' is above delimiter on line: ~A~%" line position-of-empty-line)
+          )
+          (if (equal i position-of-empty-line)
+            (assert (equal line ""))
+          )
+        )
+      )
+      (setq i (1+ i))
+    )
+    t
   )
 )
 
@@ -257,29 +284,38 @@
 (defun reflow-nontrivial-lines (lines)
   " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
   (let*
+    (
+      (position-of-empty-line nil)
+      (undashed-lines nil)
+      (lines-above-delimiter nil)
+      (lines-below-delimiter nil)
+      (num-lines-below-delimiter nil)
+      (dashed-lines-below-delimiter nil)
+    )
     ; Find the empty line (delimiter).
-    ((position-of-empty-line (position "" lines :test #'string=))
+    (setq position-of-empty-line (position "" lines :test #'string=))
+    (check-no-undashed-lines-above-delimiter lines position-of-empty-line)
 
     ; Get the undashed lines (excluding the delimiter line).
-    (undashed-lines (cdr (get-undashed-lines lines)))
+    (setq undashed-lines (rest (get-undashed-lines lines)))
 
     ; Get lines above delimiter.
-    (lines-above-delimiter (slice lines 0 position-of-empty-line))
+    (setq lines-above-delimiter (slice lines 0 position-of-empty-line))
 
     ; Get number of lines below delimiter.
-    (num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
+    (setq num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
 
     ; Get a list of the lines below the delimiter.
-    (lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
+    (setq lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
 
     ; Get only the dashed lines below the delimiter.
-    (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
+    (setq dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter))
 
-  ; Test the parse function.
-  (parse-todo-tree lines)
+    ; Test the parse function.
+    (parse-todo-tree lines)
 
-  ; Concatenate everything, adding delimiter back in.
-  (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)
+    ; Concatenate everything, adding delimiter back in.
+    (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)
   )
 )
 
