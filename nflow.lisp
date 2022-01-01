@@ -188,58 +188,56 @@
 
     )
 
-
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
   )
 )
 
 
+(defun reflow-nontrivial-lines (lines)
+  " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
+  (let*
+    ; Find the empty line (delimiter).
+    ((position-of-empty-line (position "" lines :test #'string=))
+
+    ; Get the undashed lines (excluding the delimiter line).
+    (undashed-lines (cdr (get-undashed-lines lines)))
+
+    ; Get lines above delimiter.
+    (lines-above-delimiter (slice lines 0 position-of-empty-line))
+
+    ; Get number of lines below delimiter.
+    (num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
+
+    ; Get a list of the lines below the delimiter.
+    (lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
+
+    ; Get only the dashed lines below the delimiter.
+    (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
+
+  ; Test the parse function.
+  (parse-todo-tree lines)
+
+  ; Concatenate everything, adding delimiter back in.
+  (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)
+  )
+)
 
 
 (defun reflow-dashed-lines (lines)
-  " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
-  (cond
-
-    ; If LINES has length 0, return an empty list.
-    ((equal (length lines) 0) '())
-
-    ; Else:
-    (t
-      (cond
-
-        ; If there is no delimiter, return LINES unchanged.
-        ((equal (position "" lines :test #'string=) nil) lines)
-
-        ; Else:
-        (t
-          (let*
-            ; Find the empty line (delimiter).
-            ((position-of-empty-line (position "" lines :test #'string=))
-
-            ; Get the undashed lines (excluding the delimiter line).
-            (undashed-lines (cdr (get-undashed-lines lines)))
-
-            ; Get lines above delimiter.
-            (lines-above-delimiter (slice lines 0 position-of-empty-line))
-
-            ; Get number of lines below delimiter.
-            (num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
-
-            ; Get a list of the lines below the delimiter.
-            (lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
-
-            ; Get only the dashed lines below the delimiter.
-            (dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter)))
-
-          ; Concatenate everything, adding delimiter back in.
-          (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)
-          (parse-todo-tree lines)))))))
+  " Checks for zero-length files and files with no delimiter. "
+  (if (equal (length lines) 0)
+    '()
+    (if (equal (position "" lines :test #'string=) nil)
+      lines
+      (reflow-nontrivial-lines lines)
+    )
+  )
+)
 
 (defun main (argv)
   " Main function. "
   (let*
-    ; Read in the file.
     ((lines (get-file (nth 1 argv)))
     (reflowed-lines (reflow-dashed-lines lines)))
   (dump-lines reflowed-lines)))
