@@ -79,8 +79,6 @@
     (t nil)))
 
 
-
-
 (defun make-tree (item)
    "it creates a new node with item."
    (cons (cons item nil) nil))
@@ -91,7 +89,6 @@
    (if (null tree)
       nil
       (cdr (car tree))))
-
 
 
 (defun next-sibling (tree)
@@ -113,20 +110,15 @@
 (defun count-leading-spaces (s)
   " Count leading spaces of a string. "
   (let*
-    (
-      (left-trimmed-s (str:trim-left s)))
-
+    ((left-trimmed-s (str:trim-left s)))
     (- (length s) (length left-trimmed-s))))
-
 
 
 (defun unroll-parent-stack (parent-stack num-indents)
   " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
   (assert (> num-indents 0))
   (let*
-    (
-      (parent nil))
-
+    ((parent nil))
     (dotimes (i num-indents)
 
       ; Get PARENT from PARENT-STACK.
@@ -134,10 +126,7 @@
 
       ; Remove PARENT from PARENT-STACK.
       (setq parent-stack (butlast parent-stack)))
-
     (list parent-stack parent)))
-
-
 
 
 (defun get-indent-size (delta indent-size)
@@ -145,7 +134,6 @@
   (if (> indent-size 0)
     indent-size
     (abs delta)))
-
 
 
 (defun get-num-indents (indent-level old-indent-level indent-size line)
@@ -161,8 +149,6 @@
 
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
-
-
 
 
 (defun parse-todo-tree (lst)
@@ -196,6 +182,7 @@
           ; If INDENT-LEVEL increased:
           (if (> indent-level old-indent-level)
             (progn
+
               ; Get NUM-INDENTS and INDENT-SIZE.
               (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
               (setq num-indents (first indent-num-size-pair))
@@ -247,9 +234,8 @@
     tree))
 
 
-
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
-    """Check that there are no undashed lines above delimiter."""
+    "Check that there are no undashed lines above delimiter."
     (let*
       ((i 0))
       (for:for ((line over lines))
