@@ -287,7 +287,6 @@
 
 
 
-
 (defun reflow-dashed-lines (lines)
   " Checks for zero-length files and files with no delimiter. "
   (if (equal (length lines) 0)
