@@ -151,6 +151,7 @@
     (list (floor indent-delta indent-size) indent-size)))
 
 
+
 (defun parse-todo-tree (lst)
   " Parse a todolist into a tree, preserving hierarchy. "
   (let*
@@ -224,13 +225,6 @@
         (setq tree (car parent-stack))
         (setq tree node)))
 
-    ; Draw TREE on each iteration.
-    (terpri)
-    (draw-cons-tree:draw-tree tree)
-    (terpri)
-
-    ; Print cons form of TREE.
-    (format t "Tree: ~A~%" tree)
     tree))
 
 
@@ -258,7 +252,8 @@
       (lines-above-delimiter nil)
       (lines-below-delimiter nil)
       (num-lines-below-delimiter nil)
-      (dashed-lines-below-delimiter nil))
+      (dashed-lines-below-delimiter nil)
+      (tree nil))
 
     ; Find the empty line (delimiter).
     (setq position-of-empty-line (position "" lines :test #'string=))
@@ -279,8 +274,18 @@
     ; Get only the dashed lines below the delimiter.
     (setq dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter))
 
-    ; Test the parse function.
-    (parse-todo-tree lines)
+    ; Get a tree representation of the lines below delimiter.
+    (setq tree (parse-todo-tree lines-below-delimiter))
+
+    (print-elements-of-list "Original" lines)
+
+    ; Draw TREE on each iteration.
+    (terpri)
+    (draw-cons-tree:draw-tree tree)
+    (terpri)
+
+    ; Print cons form of TREE.
+    (format t "Tree: ~A~%" tree)
 
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
@@ -301,7 +306,7 @@
   (let*
     ((lines (get-file (nth 1 argv)))
      (reflowed-lines (reflow-dashed-lines lines)))
-   (dump-lines reflowed-lines)))
+   (print-elements-of-list "Single-level implementation result" reflowed-lines)))
 
 
 ; OUTLINE
