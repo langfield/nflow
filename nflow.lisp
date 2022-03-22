@@ -189,7 +189,7 @@
   (let*
     (
       ; Initialize TREE with a dummy root.
-      (tree (make-tree "root"))
+      (tree (make-tree "- root"))
       (indent-level 0)
       (old-indent-level 0)
       (node tree)
@@ -305,6 +305,7 @@
   (str:starts-with? "- " (data tree)))
 
 (defun and-fn (a b)
+  "Boolean binary AND function."
   (if (and a b)
     t
     nil))
@@ -326,7 +327,7 @@
   (if (equal (first-child tree) nil)
 
     ; Check if the values of TREE have a dash prefix, i.e. are checked off.
-    tree
+    (is-checked-off tree)
 
     ; Reduce the children with AND to determine if all of them are checked off or not.
     (let*
@@ -343,7 +344,7 @@
         (if (not (str:starts-with? "- " line))
           (progn
             (if (< i position-of-empty-line)
-              (error "Line: '~A' is above delimiter on line: ~A~%" line position-of-empty-line))
+              (error "Unchecked item: '~A' is above delimiter on line: ~A~%" line position-of-empty-line))
             (if (equal i position-of-empty-line)
               (assert (equal line "")))))
         (setq i (1+ i)))
