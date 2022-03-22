@@ -108,6 +108,15 @@
    (car (car tree)))
 
 
+(defun tree-replace-data (tree data)
+  " Return a copy of TREE with its data replaced with DATA. "
+  (let*
+    ((copy (copy-tree tree))
+     (children (cdr (car copy)))
+     (inner (cons data children)))
+    (cons inner nil)))
+
+
 (defun add-child (tree child)
   " Add child to tree. "
    (setf (car tree) (append (car tree) child))
@@ -295,13 +304,11 @@
         (progn
           (setq tree node)
           (format t "Set TREE equal to NODE: '~A'~%" (data node))
-          (assert (looks-like-node tree))))
-      (terpri)
-      (draw-cons-tree:draw-tree tree)
-      (terpri))
+          (assert (looks-like-node tree)))))
     tree))
 
 (defun is-checked-off (tree)
+  "Check if the data of TREE has a dash prefix, i.e. is checked off."
   (str:starts-with? "- " (data tree)))
 
 (defun and-fn (a b)
@@ -318,22 +325,39 @@
 (defun get-children-as-roots (tree)
   (mapcar #'wrap-in-list (first-child tree)))
 
+
+(defun get-first-child-from-wrapped-children (wrapped-children)
+  "Wrapped children are trees themselves, so we must unwrap them (CAR) and
+  then wrap the list of the unwrapped children (CONS <...> NIL)."
+  (cons (mapcar #'car wrapped-children) nil))
+
+
 (defun resolve-todo-tree (tree)
   "Check off nodes if all their children are checked off.  This is a recursive
   function that will return a tree with the root node checked off if and only
   if all its children are 'resolved', which it determines by making recursive
   calls on all the children."
   (format t "Resolving: ~A~%" tree)
+
+  ; If TREE is a leaf node:
   (if (equal (first-child tree) nil)
 
-    ; Check if the values of TREE have a dash prefix, i.e. are checked off.
-    (is-checked-off tree)
+    ; Return T if the leaf node is checked off, and NIL otherwise.
+    tree
 
     ; Reduce the children with AND to determine if all of them are checked off or not.
     (let*
-      ((wrapped-children (get-children-as-roots tree)))
-      (format t "Wrapped children: ~A~%" wrapped-children)
-      (reduce #'and-fn (mapc #'resolve-todo-tree wrapped-children) :key #'is-checked-off :initial-value t))))
+      ((copy (copy-tree tree))
+       (wrapped-children (get-children-as-roots tree))
+       (resolved-children (mapcar #'resolve-todo-tree wrapped-children))
+       (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
+       (copy-with-resolved-children (add-child copy resolved-first-child))
+       (is-checked (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t)))
+      (if is-checked
+        (if (is-checked-off copy-with-resolved-children)
+          copy-with-resolved-children
+          (tree-replace-data copy-with-resolved-children (str:concat "- " (data copy))))
+       copy-with-resolved-children))))
 
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
