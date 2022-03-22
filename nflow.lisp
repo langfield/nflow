@@ -80,7 +80,7 @@
 
 
 (defun make-tree (item)
-   "it creates a new node with item."
+   "Create a new node with item."
    (cons (cons item nil) nil))
 
 
@@ -91,13 +91,20 @@
       (cdr (car tree))))
 
 
+(defun children (tree)
+    " Get children of root. "
+   (if (null tree)
+      nil
+      (cdr tree)))
+
+
 (defun next-sibling (tree)
   " Get next sibling. "
    (cdr tree))
 
 
 (defun data (tree)
-  " Get data of tree. "
+  " Get the data of the root node of a tree. "
    (car (car tree)))
 
 
@@ -114,15 +121,34 @@
     (- (length s) (length left-trimmed-s))))
 
 
-(defun unroll-parent-stack (parent-stack num-indents)
+(defun looks-like-node (node)
+  (assert (equal (type-of node) 'cons))
+  (assert (equal (type-of (car node)) 'cons))
+  (assert (not (equal (type-of (car (car node))) 'cons)))
+  t)
+
+
+(defun print-parent-stack (parent-stack)
+  (format t "Parent stack (bottom-to-top): ")
+  (for:for ((node over parent-stack))
+        (format t "'~A' " (data node)))
+  (terpri))
+
+
+(defun pop-from-parent-stack (parent-stack num-indents)
   " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
+  (format t "Popping '~A' indents from PARENT-STACK~%" num-indents)
+  (print-parent-stack parent-stack)
   (assert (> num-indents 0))
   (let*
     ((parent nil))
     (dotimes (i num-indents)
 
       ; Get PARENT from PARENT-STACK.
-      (setq parent (last parent-stack))
+      (format t "Raw PARENT-STACK: '~A'~%" parent-stack)
+      (setq parent (first (last parent-stack)))
+      (assert (looks-like-node parent))
+      (format t "Got PARENT '~A' from top of PARENT-STACK~%" (data parent))
 
       ; Remove PARENT from PARENT-STACK.
       (setq parent-stack (butlast parent-stack)))
@@ -139,17 +165,23 @@
 (defun get-num-indents (indent-level old-indent-level indent-size line)
   " Compute NUM-INDENTS and INDENT-SIZE from the indent levels. "
   (let*
-    (
-      (indent-delta 0))
-
+    ; Difference between the indent level and the previous indent level.
+    ((indent-delta 0))
     (setq indent-delta (- indent-level old-indent-level))
+
+    ; INDENT-SIZE acts as a kind of default. If it's 0, we consider it
+    ; uninitialized and we take INDENT-DELTA as the indent size. If it's
+    ; nonzero, we just use INDENT-SIZE, since we consider it "already
+    ; initialized" in that case.
     (setq indent-size (get-indent-size indent-delta indent-size))
+
+    ; If INDENT-DELTA is not a multiple of INDENT-SIZE, we have inconsistent
+    ; indentation.
     (if (not (equal (mod indent-delta indent-size) 0))
       (error "Inconsistent indentation on line with contents: ~A~%" line))
 
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
-
 
 
 (defun parse-todo-tree (lst)
@@ -172,7 +204,11 @@
     ; Loop over LST
     (for:for ((line over lst))
 
-      ; If LINE is nonempty:
+      (format t "===================================~%")
+      (format t "Tree at BEGINNING of iteration: '~A'~%" tree)
+      (format t "Processing line: '~A'~%" line)
+
+        ; If LINE is nonempty:
       (if (not (str:empty? line))
         (progn
 
@@ -184,19 +220,36 @@
           (if (> indent-level old-indent-level)
             (progn
 
-              ; Get NUM-INDENTS and INDENT-SIZE.
+              ; Get NUM-INDENTS (the number of indents we increased by) and
+              ; INDENT-SIZE. Note that after INDENT-SIZE is set in the first
+              ; call to GET-NUM-INDENTS, it is initialized and will never
+              ; change again, so we enforce consistent indentation.
               (setq indent-num-size-pair (get-num-indents indent-level old-indent-level indent-size line))
               (setq num-indents (first indent-num-size-pair))
               (setq indent-size (second indent-num-size-pair))
+
+              ; We should always increase indentation by exactly one indent
+              ; level.
               (assert (> num-indents 0))
               (if (> num-indents 1)
-                (error "Indent level increased by more than 1: ~A~%" line))
+                (error "Indent level increased by more than 1: '~A'~%" line))
 
               ; Append NODE to PARENT-STACK.
-              (setq parent-stack (append parent-stack node))
+              ; PARENT-STACK is exactly what it sounds like, it is a stack of
+              ; the ancestors of the current node. So the top element of the
+              ; stack is the direct parent of the current node, and the bottom
+              ; element should always be the root.
+              (format t "Appending NODE '~A' to PARENT-STACK~%" (data node))
+              (assert (looks-like-node node))
+
+              ; NODE must be wrapped in a CONS because of the way APPEND works.
+              (setq parent-stack (append parent-stack (cons node nil)))
+              (print-parent-stack parent-stack)
 
               ; Set NODE to LAST-CREATED-CHILD.
-              (setq node last-created-child))
+              (format t "Setting NODE equal to LAST-CREATED-CHILD: '~A'~%" (data last-created-child))
+              (setq node last-created-child)
+              (assert (looks-like-node node)))
 
             ; Otherwise if INDENT-LEVEL decreased:
             (if (< indent-level old-indent-level)
@@ -209,23 +262,77 @@
                 (assert (< num-indents 0))
 
                 ; Get updated PARENT-STACK and PARENT.
-                (setq parent-stack-pair (unroll-parent-stack parent-stack (- num-indents)))
+                ; The PARENT-STACK-PAIR is the return value of UNROLL-PARENT-STACK.
+                ; It is of the form (PARENT-STACK, PARENT).
+                (format t "Popping from PARENT-STACK.~%")
+                (setq parent-stack-pair (pop-from-parent-stack parent-stack (- num-indents)))
                 (setq parent-stack (first parent-stack-pair))
+                (print-parent-stack parent-stack)
                 (setq parent (second parent-stack-pair))
+                (format t "Popped parent: '~A'~%" (data parent))
+                (assert (looks-like-node parent))
 
                 ; Set NODE to PARENT.
-                (setq node parent))))
+                (format t "Setting NODE equal to popped PARENT '~A'~%" (data parent))
+                (setq node parent))
+              (progn
+               (format t "Indent level did not change from previous iteration!~%")
+               (print-parent-stack parent-stack))))
 
           ; Add LINE as another child.
           (setq last-created-child (make-tree (str:trim-left line)))
-          (setq node (add-child node last-created-child))))
+          (assert (looks-like-node last-created-child))
 
-      ; Get a reference to the root.
+          (setq node (add-child node last-created-child))
+          (assert (looks-like-node node))))
+
+        ; Get a reference to the root.
       (if (> (length parent-stack) 0)
-        (setq tree (car parent-stack))
-        (setq tree node)))
-
+        (progn
+          (setq tree (car parent-stack))
+          (format t "Set TREE equal to bottom of PARENT-STACK: '~A'~%" (data (car parent-stack)))
+          (assert (looks-like-node tree)))
+        (progn
+          (setq tree node)
+          (format t "Set TREE equal to NODE: '~A'~%" (data node))
+          (assert (looks-like-node tree))))
+      (terpri)
+      (draw-cons-tree:draw-tree tree)
+      (terpri))
     tree))
+
+(defun is-checked-off (tree)
+  (str:starts-with? "- " (data tree)))
+
+(defun and-fn (a b)
+  (if (and a b)
+    t
+    nil))
+
+(defun wrap-in-list (item)
+  (format t "Wrapping: ~A~%" item)
+  (cons item nil))
+
+
+(defun get-children-as-roots (tree)
+  (mapcar #'wrap-in-list (first-child tree)))
+
+(defun resolve-todo-tree (tree)
+  "Check off nodes if all their children are checked off.  This is a recursive
+  function that will return a tree with the root node checked off if and only
+  if all its children are 'resolved', which it determines by making recursive
+  calls on all the children."
+  (format t "Resolving: ~A~%" tree)
+  (if (equal (first-child tree) nil)
+
+    ; Check if the values of TREE have a dash prefix, i.e. are checked off.
+    tree
+
+    ; Reduce the children with AND to determine if all of them are checked off or not.
+    (let*
+      ((wrapped-children (get-children-as-roots tree)))
+      (format t "Wrapped children: ~A~%" wrapped-children)
+      (reduce #'and-fn (mapc #'resolve-todo-tree wrapped-children) :key #'is-checked-off :initial-value t))))
 
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
@@ -286,6 +393,9 @@
 
     ; Print cons form of TREE.
     (format t "Tree: ~A~%" tree)
+
+    ; Print result of RESOLVE-TODO-TREE.
+    (format t "All checked off: ~A~%" (resolve-todo-tree tree))
 
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
