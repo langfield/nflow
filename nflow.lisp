@@ -208,53 +208,32 @@
   (mapcar #'wrap-in-list (first-child tree)))
 
 
-(defun unparse-tree (tree level)
+(defun unparse-tree (tree)
   ; If tree is LEAF, return line with data.
   ; If tree is not LEAF, map UNPARSE-TREE over children, and get list of
   ; results.
   ; Then concatenate results with newlines between, adding an indent.
   ; Then optionally prepend data of the tree (if data is not "- root"), with no
   ; indentation.
-  (let*
-    ((indent (str:repeat level "    ")))
-    (if (equal (first-child tree) nil)
-      (progn
-        (format t "~AUnparsing leaf node: '~A'~%" indent (data tree))
-        (data tree))
-      (let*
-         ((result nil)
-          (wrapped-children nil)
-          (unparsed-children-data nil)
-          (indented-unparsed-children-data nil)
-          (indented-unparsed-children-block nil)
-          (unindented-unparsed-children-block nil))
-        (format t "~AUnparsing non-leaf node: '~A'~%" indent (data tree))
-
-        (setq wrapped-children (get-children-as-roots tree))
-        (print-node-list wrapped-children "wrapped children" indent)
-        (terpri)
-        (draw-cons-tree:draw-tree tree)
-        (terpri)
-
-        (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child (+ level 1))) wrapped-children))
-        (format t "~Aunparsed-children-data:~%~A~%" indent unparsed-children-data)
-
-        (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
-        (format t "~Aindented-unparsed-children-data:~%~A~%" indent indented-unparsed-children-data)
-
-        (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
-        (format t "~Aindented-unparsed-children-block:~%~A~%" indent indented-unparsed-children-block)
-
-        (setq unindented-unparsed-children-block (str:join (format nil "~%") unparsed-children-data))
-        (format t "~Aunindented-unparsed-children-block:~%~A~%" indent unindented-unparsed-children-block)
-
-        (if (equal "- root" (data tree))
-          unindented-unparsed-children-block
-          (progn
-            (format t "~AConcatenating ~A || ~A || ~A ...~%" indent (data tree) (format nil "~%") indented-unparsed-children-block)
-            (setq result (str:concat (data tree) (format nil "~%") indented-unparsed-children-block))
-            (format t "~AConcatenated.~%" indent)
-            result))))))
+  (if (equal (first-child tree) nil)
+    (data tree)
+    (let*
+       ((result nil)
+        (wrapped-children nil)
+        (unparsed-children-data nil)
+        (indented-unparsed-children-data nil)
+        (indented-unparsed-children-block nil)
+        (unindented-unparsed-children-block nil))
+      (setq wrapped-children (get-children-as-roots tree))
+      (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child)) wrapped-children))
+      (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
+      (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
+      (setq unindented-unparsed-children-block (str:join (format nil "~%") unparsed-children-data))
+      (if (equal "- root" (data tree))
+        unindented-unparsed-children-block
+        (progn
+          (setq result (str:concat (data tree) (format nil "~%") indented-unparsed-children-block))
+          result)))))
 
 
 (defun parse-todo-tree (lst)
@@ -504,7 +483,7 @@
 
     (print-elements-of-list "Original" lines)
 
-    (setq resolved-lines (unparse-tree resolved-tree 0))
+    (setq resolved-lines (unparse-tree resolved-tree))
     (format t "Resolved lines:~%~A~%" resolved-lines)
 
     ; Concatenate everything, adding delimiter back in.
