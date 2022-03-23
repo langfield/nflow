@@ -1,7 +1,7 @@
 (load "~/.quicklisp/setup.lisp")
 (ql:quickload :str)
-(ql:quickload :numcl)
 (ql:quickload :for)
+(ql:quickload :numcl)
 (ql:quickload :draw-cons-tree)
 
 (defun get-file (filename)
@@ -382,7 +382,6 @@
       (lines-below-delimiter nil)
       (num-lines-below-delimiter nil)
       (dashed-lines-below-delimiter nil)
-      (resolved-tree nil)
       (resolved-lines nil)
       (tree nil))
 
@@ -408,30 +407,11 @@
     ; Get a tree representation of the lines below delimiter.
     (setq tree (parse-todo-tree lines-below-delimiter))
 
+    ; Print original items.
     (print-elements-of-list "Original" lines)
 
-    ; Draw TREE on each iteration.
-    (terpri)
-    (draw-cons-tree:draw-tree tree)
-    (terpri)
-
-    ; Print cons form of TREE.
-    (format t "Tree: ~A~%" tree)
-
-    ; Print result of RESOLVE-TODO-TREE.
-    (format t "All checked off: ~A~%" (resolve-todo-tree tree))
-
-    (setq resolved-tree (resolve-todo-tree tree))
-
-    (format t "Resolved tree:~%~%")
-    (terpri)
-    (draw-cons-tree:draw-tree resolved-tree)
-    (terpri)
-    (format t "Resolved tree: ~A~%" resolved-tree)
-
-    (print-elements-of-list "Original" lines)
-
-    (setq resolved-lines (unparse-tree resolved-tree))
+    ; Print resolved items.
+    (setq resolved-lines (unparse-tree (resolve-todo-tree tree)))
     (print-elements-of-list "Resolved" resolved-lines)
 
     ; Concatenate everything, adding delimiter back in.
