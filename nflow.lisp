@@ -239,7 +239,7 @@
         (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child (+ level 1))) wrapped-children))
         (format t "~Aunparsed-children-data:~%~A~%" indent unparsed-children-data)
 
-        (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "    "))
+        (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
         (format t "~Aindented-unparsed-children-data:~%~A~%" indent indented-unparsed-children-data)
 
         (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
@@ -384,7 +384,7 @@
 (defun get-first-child-from-wrapped-children (wrapped-children)
   "Wrapped children are trees themselves, so we must unwrap them (CAR) and
   then wrap the list of the unwrapped children (CONS <...> NIL)."
-  (cons (mapcar #'car wrapped-children) nil))
+  (car (cons (mapcar #'car wrapped-children) nil)))
 
 
 (defun resolve-todo-tree (tree)
@@ -500,13 +500,12 @@
     (terpri)
     (draw-cons-tree:draw-tree resolved-tree)
     (terpri)
+    (format t "Resolved tree: ~A~%" resolved-tree)
 
     (print-elements-of-list "Original" lines)
 
-    (setq resolved-lines nil)
-    (format t "Resolved lines: ~A~%" resolved-lines)
-    ; (setq resolved-lines (unparse-tree resolved-tree 0))
-    ; (format t "Resolved lines:~%~A~%" resolved-lines)
+    (setq resolved-lines (unparse-tree resolved-tree 0))
+    (format t "Resolved lines:~%~A~%" resolved-lines)
 
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
