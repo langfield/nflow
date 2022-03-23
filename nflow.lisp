@@ -46,9 +46,9 @@
 
 (defun print-elements-of-list (name lst)
   " Print each element of LST on a line of its own. "
-  (format t "~A:~%" name)
+  (format t "~A (length ~A):~%" name (length lst))
   (loop while lst do
-    (format t "~A~%" (car lst))
+    (format t "~A~%~%" (car lst))
     (setq lst (cdr lst)))
   (terpri))
 
@@ -136,6 +136,14 @@
   (assert (not (equal (type-of (car (car node))) 'cons)))
   t)
 
+(defun assert-is-cons (obj)
+  (assert (equal (type-of obj) 'cons)))
+
+
+(defun assert-is-string (obj)
+  (format t "Checking if '~A' is a string~%" obj)
+  (assert (stringp obj)))
+
 
 (defun print-parent-stack (parent-stack)
   (format t "Parent stack (bottom-to-top): ")
@@ -215,23 +223,69 @@
   ; Then concatenate results with newlines between, adding an indent.
   ; Then optionally prepend data of the tree (if data is not "- root"), with no
   ; indentation.
-  (if (equal (first-child tree) nil)
-    (data tree)
-    (let*
-      ((wrapped-children nil)
-       (unparsed-children-data nil)
-       (indented-unparsed-children-data nil)
-       (indented-unparsed-children-block nil)
-       (unindented-unparsed-children-block nil))
-      (setq wrapped-children (get-children-as-roots tree))
-      (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child)) wrapped-children))
-      (print-elements-of-list "Unparsed children data" unparsed-children-data)
-      (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
-      (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
-      (setq unindented-unparsed-children-block (str:join (format nil "~%") unparsed-children-data))
-      (if (equal "- root" (data tree))
-        unindented-unparsed-children-block
-        (str:concat (data tree) (format nil "~%") indented-unparsed-children-block)))))
+  (let*
+      ((result nil))
+    (if (equal (first-child tree) nil)
+      ; list[str]
+      (progn
+        (setq result (cons (data tree) nil))
+        (format t "Returning '~A'~%" result)
+        (assert (consp result))
+        (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+        result)
+      (let*
+        ((wrapped-children nil)
+         (unparsed-children-data nil)
+         (indented-unparsed-children-data nil))
+        (format t "Unparsing node: ~A~%" (data tree))
+
+        ; list[tree]
+        (setq wrapped-children (get-children-as-roots tree))
+        (print-elements-of-list "wrapped children" wrapped-children)
+
+        ; list[list[str]]
+        (setq unparsed-children-data (mapcar #'unparse-tree wrapped-children))
+
+        ; typecheck.
+        (format t "Unparsed children data: ~A~%" unparsed-children-data)
+        (assert-is-cons unparsed-children-data)
+        (mapcar #'assert-is-cons unparsed-children-data)
+        (mapcar (lambda (elem) (mapcar #'assert-is-string elem)) unparsed-children-data)
+        (format t "Length of first element of unparsed-children-data:~A~%" (length (first unparsed-children-data)))
+        (format t "Length of first element of first element of unparsed-children-data:~A~%" (length (first (first unparsed-children-data))))
+        (print-elements-of-list "Unparsed children data" unparsed-children-data)
+
+        ; The return value of UNPARSE-TREE must be a string for this (commented
+        ; out) line to make sense, because we are adding a string prefix to each
+        ; of its elements.
+        ; (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
+
+        ; list[list[str]]
+        (setq indented-unparsed-children-data (mapcar (lambda (unparsed-child) (str:add-prefix unparsed-child "  ")) unparsed-children-data))
+        (print-elements-of-list "Indented unparsed" indented-unparsed-children-data)
+        (setq result indented-unparsed-children-data)
+        (assert (consp result))
+        (assert (mapcar (lambda (elem) (assert (consp elem))) result))
+        (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) result))
+
+        (if (equal "- root" (data tree))
+
+          ; list[str]
+          (progn
+            (setq result (reduce (lambda (a b) (concatenate 'list a b)) unparsed-children-data :initial-value '()))
+            (format t "Returning just unparsed: '~A'~%" result)
+            (assert (consp result))
+            (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+            result)
+
+          ; list[str]
+          (progn
+            (setq result (reduce (lambda (a b) (concatenate 'list a b)) indented-unparsed-children-data :initial-value '()))
+            (format t "Returning indented: '~A'~%" result)
+            (assert (consp result))
+            (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+            result))))))
+
 
 
 (defun parse-todo-tree (lst)
