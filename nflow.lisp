@@ -218,22 +218,20 @@
   (if (equal (first-child tree) nil)
     (data tree)
     (let*
-       ((result nil)
-        (wrapped-children nil)
-        (unparsed-children-data nil)
-        (indented-unparsed-children-data nil)
-        (indented-unparsed-children-block nil)
-        (unindented-unparsed-children-block nil))
+      ((wrapped-children nil)
+       (unparsed-children-data nil)
+       (indented-unparsed-children-data nil)
+       (indented-unparsed-children-block nil)
+       (unindented-unparsed-children-block nil))
       (setq wrapped-children (get-children-as-roots tree))
       (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child)) wrapped-children))
+      (print-elements-of-list "Unparsed children data" unparsed-children-data)
       (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
       (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
       (setq unindented-unparsed-children-block (str:join (format nil "~%") unparsed-children-data))
       (if (equal "- root" (data tree))
         unindented-unparsed-children-block
-        (progn
-          (setq result (str:concat (data tree) (format nil "~%") indented-unparsed-children-block))
-          result)))))
+        (str:concat (data tree) (format nil "~%") indented-unparsed-children-block)))))
 
 
 (defun parse-todo-tree (lst)
