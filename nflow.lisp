@@ -11,10 +11,6 @@
       while line
       collect line)))
 
-(defun print-list (printable-list)
-  " Print an arbitrary list. "
-  (format t "~{~A ~}~%" printable-list))
-
 (defun starts-with (prefix)
   " Check whether STR starts with PREFIX. "
   (defun starts-with-prefix (str)
@@ -51,32 +47,6 @@
     (format t "~A~%" (car lst))
     (setq lst (cdr lst)))
   (terpri))
-
-(defun dump-lines (lst)
-  " Print each element of LST on a line of its own. "
-  (loop while lst do
-    (format t "~A~%" (car lst))
-    (setq lst (cdr lst))))
-
-(defun in-list (x lst)
-  " Check whether X is in LST. "
-   (cond
-      ((null lst) ())
-      ((equal (car lst) x) lst)
-      (t (in-list x (cdr lst)))))
-
-(defun subset (lst1 lst2)
-  " Check whether every element in LST1 is in LST2. "
-   (cond
-      ((null lst1) t)
-      ((in-list (car lst1) lst2)(subset (cdr lst1) lst2))
-      (t ())))
-
-(defun list-equals (lst1 lst2)
-  " Check if two lists are equal. "
-  (cond
-    ((and (subset lst1 lst2) (subset lst2 lst1)) t)
-    (t nil)))
 
 
 (defun make-tree (item)
@@ -126,7 +96,7 @@
 (defun count-leading-spaces (s)
   " Count leading spaces of a string. "
   (let*
-    ((left-trimmed-s (str:trim-left s)))
+      ((left-trimmed-s (str:trim-left s)))
     (- (length s) (length left-trimmed-s))))
 
 
@@ -135,28 +105,6 @@
   (assert (equal (type-of (car node)) 'cons))
   (assert (not (equal (type-of (car (car node))) 'cons)))
   t)
-
-(defun assert-is-cons (obj)
-  (assert (equal (type-of obj) 'cons)))
-
-
-(defun assert-is-string (obj)
-  (format t "Checking if '~A' is a string~%" obj)
-  (assert (stringp obj)))
-
-
-(defun print-parent-stack (parent-stack)
-  (format t "Parent stack (bottom-to-top): ")
-  (for:for ((node over parent-stack))
-        (format t "'~A' " (data node)))
-  (terpri))
-
-
-(defun print-node-list (node-list name display-prefix)
-  (format t "~A~A (data-only): " display-prefix name)
-  (for:for ((node over node-list))
-        (format t "~A'~A' " display-prefix (data node)))
-  (terpri))
 
 
 (defun pop-from-parent-stack (parent-stack num-indents)
@@ -204,12 +152,8 @@
     (list (floor indent-delta indent-size) indent-size)))
 
 
-(defun wrap-in-list (item)
-  (cons item nil))
-
-
 (defun get-children-as-roots (tree)
-  (mapcar #'wrap-in-list (first-child tree)))
+  (mapcar (lambda (item) (cons item nil)) (first-child tree)))
 
 
 
@@ -510,12 +454,3 @@
     ((lines (get-file (nth 1 argv)))
      (reflowed-lines (reflow-dashed-lines lines)))
    (print-elements-of-list "Single-level implementation result" reflowed-lines)))
-
-
-; OUTLINE
-; -------
-; Read the whole file in. (DONE)
-; Get all elements after the empty line that start with "- ". (DONE)
-; Get all elements after the empty line that do not start with "- ". (DONE)
-; Move the dashed lines to just before the empty line in the sequence. (DONE)
-; Put the new list back in the file.
