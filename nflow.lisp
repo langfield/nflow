@@ -144,6 +144,13 @@
   (terpri))
 
 
+(defun print-node-list (node-list name display-prefix)
+  (format t "~A~A (data-only): " display-prefix name)
+  (for:for ((node over node-list))
+        (format t "~A'~A' " display-prefix (data node)))
+  (terpri))
+
+
 (defun pop-from-parent-stack (parent-stack num-indents)
   " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
   (format t "Popping '~A' indents from PARENT-STACK~%" num-indents)
@@ -191,6 +198,63 @@
 
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
+
+
+(defun wrap-in-list (item)
+  (cons item nil))
+
+
+(defun get-children-as-roots (tree)
+  (mapcar #'wrap-in-list (first-child tree)))
+
+
+(defun unparse-tree (tree level)
+  ; If tree is LEAF, return line with data.
+  ; If tree is not LEAF, map UNPARSE-TREE over children, and get list of
+  ; results.
+  ; Then concatenate results with newlines between, adding an indent.
+  ; Then optionally prepend data of the tree (if data is not "- root"), with no
+  ; indentation.
+  (let*
+    ((indent (str:repeat level "    ")))
+    (if (equal (first-child tree) nil)
+      (progn
+        (format t "~AUnparsing leaf node: '~A'~%" indent (data tree))
+        (data tree))
+      (let*
+         ((result nil)
+          (wrapped-children nil)
+          (unparsed-children-data nil)
+          (indented-unparsed-children-data nil)
+          (indented-unparsed-children-block nil)
+          (unindented-unparsed-children-block nil))
+        (format t "~AUnparsing non-leaf node: '~A'~%" indent (data tree))
+
+        (setq wrapped-children (get-children-as-roots tree))
+        (print-node-list wrapped-children "wrapped children" indent)
+        (terpri)
+        (draw-cons-tree:draw-tree tree)
+        (terpri)
+
+        (setq unparsed-children-data (mapcar (lambda (child) (unparse-tree child (+ level 1))) wrapped-children))
+        (format t "~Aunparsed-children-data:~%~A~%" indent unparsed-children-data)
+
+        (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "    "))
+        (format t "~Aindented-unparsed-children-data:~%~A~%" indent indented-unparsed-children-data)
+
+        (setq indented-unparsed-children-block (str:join (format nil "~%") indented-unparsed-children-data))
+        (format t "~Aindented-unparsed-children-block:~%~A~%" indent indented-unparsed-children-block)
+
+        (setq unindented-unparsed-children-block (str:join (format nil "~%") unparsed-children-data))
+        (format t "~Aunindented-unparsed-children-block:~%~A~%" indent unindented-unparsed-children-block)
+
+        (if (equal "- root" (data tree))
+          unindented-unparsed-children-block
+          (progn
+            (format t "~AConcatenating ~A || ~A || ~A ...~%" indent (data tree) (format nil "~%") indented-unparsed-children-block)
+            (setq result (str:concat (data tree) (format nil "~%") indented-unparsed-children-block))
+            (format t "~AConcatenated.~%" indent)
+            result))))))
 
 
 (defun parse-todo-tree (lst)
@@ -317,15 +381,6 @@
     t
     nil))
 
-(defun wrap-in-list (item)
-  (format t "Wrapping: ~A~%" item)
-  (cons item nil))
-
-
-(defun get-children-as-roots (tree)
-  (mapcar #'wrap-in-list (first-child tree)))
-
-
 (defun get-first-child-from-wrapped-children (wrapped-children)
   "Wrapped children are trees themselves, so we must unwrap them (CAR) and
   then wrap the list of the unwrapped children (CONS <...> NIL)."
@@ -337,7 +392,6 @@
   function that will return a tree with the root node checked off if and only
   if all its children are 'resolved', which it determines by making recursive
   calls on all the children."
-  (format t "Resolving: ~A~%" tree)
 
   ; If TREE is a leaf node:
   (if (equal (first-child tree) nil)
@@ -348,16 +402,32 @@
     ; Reduce the children with AND to determine if all of them are checked off or not.
     (let*
       ((copy (copy-tree tree))
-       (wrapped-children (get-children-as-roots tree))
+       (wrapped-children (get-children-as-roots copy))
        (resolved-children (mapcar #'resolve-todo-tree wrapped-children))
        (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
-       (copy-with-resolved-children (add-child copy resolved-first-child))
-       (is-checked (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t)))
+       (copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
+       (is-checked (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t))
+       (checked-resolved-copy (tree-replace-data copy-with-resolved-children (str:concat "- " (data copy)))))
       (if is-checked
         (if (is-checked-off copy-with-resolved-children)
-          copy-with-resolved-children
-          (tree-replace-data copy-with-resolved-children (str:concat "- " (data copy))))
-       copy-with-resolved-children))))
+          (progn 
+            (format t "Returning already-checked-off copy:~%")
+            (terpri)
+            (draw-cons-tree:draw-tree copy-with-resolved-children)
+            (terpri)
+            copy-with-resolved-children)
+          (progn
+            (format t "Checking off and returning resolved copy:~%")
+            (terpri)
+            (draw-cons-tree:draw-tree checked-resolved-copy)
+            (terpri)
+            checked-resolved-copy))
+        (progn
+          (format t "Not all children are checked-off, returning copy with resolved children:~%")
+          (terpri)
+          (draw-cons-tree:draw-tree checked-resolved-copy)
+          (terpri)
+          copy-with-resolved-children)))))
 
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
@@ -385,6 +455,8 @@
       (lines-below-delimiter nil)
       (num-lines-below-delimiter nil)
       (dashed-lines-below-delimiter nil)
+      (resolved-tree nil)
+      (resolved-lines nil)
       (tree nil))
 
     ; Find the empty line (delimiter).
@@ -421,6 +493,20 @@
 
     ; Print result of RESOLVE-TODO-TREE.
     (format t "All checked off: ~A~%" (resolve-todo-tree tree))
+
+    (setq resolved-tree (resolve-todo-tree tree))
+
+    (format t "Resolved tree:~%~%")
+    (terpri)
+    (draw-cons-tree:draw-tree resolved-tree)
+    (terpri)
+
+    (print-elements-of-list "Original" lines)
+
+    (setq resolved-lines nil)
+    (format t "Resolved lines: ~A~%" resolved-lines)
+    ; (setq resolved-lines (unparse-tree resolved-tree 0))
+    ; (format t "Resolved lines:~%~A~%" resolved-lines)
 
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
