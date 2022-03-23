@@ -78,7 +78,7 @@
    (car (car tree)))
 
 
-(defun tree-replace-data (tree data)
+(defun replace-tree-data (tree data)
   " Return a copy of TREE with its data replaced with DATA. "
   (let*
     ((copy (copy-tree tree))
@@ -345,16 +345,27 @@
 
     ; Reduce the children with AND to determine if all of them are checked off or not.
     (let*
-      ((copy (copy-tree tree))
-       (wrapped-children (get-children-as-roots copy))
-       (resolved-children (mapcar #'resolve-todo-tree wrapped-children))
+      ((tree-copy (copy-tree tree))
+
+       ; Recursively call RESOLVE-TODO-TREE to resolve each child.
+       (resolved-children (mapcar #'resolve-todo-tree (get-children-as-roots tree-copy)))
+
+       ; The first child contains all the data of all the children because of
+       ; how cons trees are structured, so we need only reconstruct the root
+       ; with MAKE-TREE and then attach our RESOLVED-FIRST-CHILD in order to
+       ; get a copy of the original tree with all its children resolved.
        (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
-       (copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
-       (is-checked (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t))
-       (checked-resolved-copy (tree-replace-data copy-with-resolved-children (str:concat "- " (data copy)))))
-      (if (and is-checked (not (is-checked-off copy-with-resolved-children)))
-        checked-resolved-copy
-        copy-with-resolved-children))))
+       (tree-copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
+
+       (all-children-are-checked-off (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t)))
+
+      ; If all children are checked off, but root is not, then we check off the
+      ; data of the root and return the resulting tree.
+      (if (and all-children-are-checked-off (not (is-checked-off tree-copy-with-resolved-children)))
+        (replace-tree-data tree-copy-with-resolved-children (str:concat "- " (data tree-copy)))
+
+        ; Otherwise, we just return the tree with children resolved.
+        tree-copy-with-resolved-children))))
 
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
