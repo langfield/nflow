@@ -387,26 +387,9 @@
        (copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
        (is-checked (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t))
        (checked-resolved-copy (tree-replace-data copy-with-resolved-children (str:concat "- " (data copy)))))
-      (if is-checked
-        (if (is-checked-off copy-with-resolved-children)
-          (progn 
-            (format t "Returning already-checked-off copy:~%")
-            (terpri)
-            (draw-cons-tree:draw-tree copy-with-resolved-children)
-            (terpri)
-            copy-with-resolved-children)
-          (progn
-            (format t "Checking off and returning resolved copy:~%")
-            (terpri)
-            (draw-cons-tree:draw-tree checked-resolved-copy)
-            (terpri)
-            checked-resolved-copy))
-        (progn
-          (format t "Not all children are checked-off, returning copy with resolved children:~%")
-          (terpri)
-          (draw-cons-tree:draw-tree checked-resolved-copy)
-          (terpri)
-          copy-with-resolved-children)))))
+      (if (and is-checked (not (is-checked-off copy-with-resolved-children)))
+        checked-resolved-copy
+        copy-with-resolved-children))))
 
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
