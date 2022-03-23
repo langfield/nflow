@@ -48,7 +48,7 @@
   " Print each element of LST on a line of its own. "
   (format t "~A (length ~A):~%" name (length lst))
   (loop while lst do
-    (format t "~A~%~%" (car lst))
+    (format t "~A~%" (car lst))
     (setq lst (cdr lst)))
   (terpri))
 
@@ -216,6 +216,18 @@
   (mapcar #'wrap-in-list (first-child tree)))
 
 
+
+(defun assert-is-cons-of-cons-of-strings (obj)
+  (assert (consp obj))
+  (assert (mapcar (lambda (elem) (assert (consp elem))) obj))
+  (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) obj)))
+
+
+(defun assert-is-cons-of-strings (obj)
+  (assert (consp obj))
+  (assert (mapcar (lambda (elem) (assert (stringp elem))) obj)))
+
+
 (defun unparse-tree (tree)
   ; If tree is LEAF, return line with data.
   ; If tree is not LEAF, map UNPARSE-TREE over children, and get list of
@@ -223,68 +235,44 @@
   ; Then concatenate results with newlines between, adding an indent.
   ; Then optionally prepend data of the tree (if data is not "- root"), with no
   ; indentation.
+
+  ; Return value is always list[string].
   (let*
       ((result nil))
     (if (equal (first-child tree) nil)
       ; list[str]
       (progn
         (setq result (cons (data tree) nil))
-        (format t "Returning '~A'~%" result)
-        (assert (consp result))
-        (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+        (assert-is-cons-of-strings result)
         result)
       (let*
         ((wrapped-children nil)
          (unparsed-children-data nil)
          (indented-unparsed-children-data nil))
-        (format t "Unparsing node: ~A~%" (data tree))
 
         ; list[tree]
         (setq wrapped-children (get-children-as-roots tree))
-        (print-elements-of-list "wrapped children" wrapped-children)
 
         ; list[list[str]]
         (setq unparsed-children-data (mapcar #'unparse-tree wrapped-children))
 
-        ; typecheck.
-        (format t "Unparsed children data: ~A~%" unparsed-children-data)
-        (assert-is-cons unparsed-children-data)
-        (mapcar #'assert-is-cons unparsed-children-data)
-        (mapcar (lambda (elem) (mapcar #'assert-is-string elem)) unparsed-children-data)
-        (format t "Length of first element of unparsed-children-data:~A~%" (length (first unparsed-children-data)))
-        (format t "Length of first element of first element of unparsed-children-data:~A~%" (length (first (first unparsed-children-data))))
-        (print-elements-of-list "Unparsed children data" unparsed-children-data)
-
-        ; The return value of UNPARSE-TREE must be a string for this (commented
-        ; out) line to make sense, because we are adding a string prefix to each
-        ; of its elements.
-        ; (setq indented-unparsed-children-data (str:add-prefix unparsed-children-data "  "))
-
         ; list[list[str]]
         (setq indented-unparsed-children-data (mapcar (lambda (unparsed-child) (str:add-prefix unparsed-child "  ")) unparsed-children-data))
-        (print-elements-of-list "Indented unparsed" indented-unparsed-children-data)
-        (setq result indented-unparsed-children-data)
-        (assert (consp result))
-        (assert (mapcar (lambda (elem) (assert (consp elem))) result))
-        (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) result))
-
+        (assert-is-cons-of-cons-of-strings indented-unparsed-children-data)
         (if (equal "- root" (data tree))
 
           ; list[str]
           (progn
             (setq result (reduce (lambda (a b) (concatenate 'list a b)) unparsed-children-data :initial-value '()))
-            (format t "Returning just unparsed: '~A'~%" result)
-            (assert (consp result))
-            (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+            (assert-is-cons-of-strings result)
             result)
 
           ; list[str]
           (progn
             (setq result (reduce (lambda (a b) (concatenate 'list a b)) indented-unparsed-children-data :initial-value '()))
-            (format t "Returning indented: '~A'~%" result)
-            (assert (consp result))
-            (assert (mapcar (lambda (elem) (assert (stringp elem))) result))
+            (assert-is-cons-of-strings result)
             result))))))
+
 
 
 
