@@ -270,6 +270,7 @@
           ; list[str]
           (progn
             (setq result (reduce (lambda (a b) (concatenate 'list a b)) indented-unparsed-children-data :initial-value '()))
+            (setq result (concatenate 'list (cons (data tree) nil) result))
             (assert-is-cons-of-strings result)
             result))))))
 
@@ -507,7 +508,7 @@
     (print-elements-of-list "Original" lines)
 
     (setq resolved-lines (unparse-tree resolved-tree))
-    (format t "Resolved lines:~%~A~%" resolved-lines)
+    (print-elements-of-list "Resolved" resolved-lines)
 
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
