@@ -2,6 +2,7 @@
 (ql:quickload :str)
 (ql:quickload :for)
 (ql:quickload :numcl)
+(ql:quickload :unix-opts)
 (ql:quickload :draw-cons-tree)
 
 (defun get-file (filename)
@@ -40,9 +41,16 @@
     (slice (cdr lst) (- start 1) size)
     (get-n-items lst size)))
 
-(defun print-elements-of-list (name lst)
+(defun debug-print-elements-of-list (name lst)
   "Print each element of LST on a line of its own."
   (format t "~A (length ~A):~%" name (length lst))
+  (loop while lst do
+    (format t "~A~%" (car lst))
+    (setq lst (cdr lst)))
+  (terpri))
+
+(defun print-elements-of-list (lst)
+  "Print each element of LST on a line of its own."
   (loop while lst do
     (format t "~A~%" (car lst))
     (setq lst (cdr lst)))
@@ -409,8 +417,70 @@
       lines
       (reflow-nontrivial-lines lines))))
 
+;;; OK, since command line options can be malformed we should use a handy
+;;; Common Lisp feature: restarts. Unix-opts gives us all we need to do so.
+;;; Here we define a function that will print a warning and ignore
+;;; unknown-option. Several restarts (behaviors) are available for every
+;;; exception that Unix-opts can throw. See documentation for `get-opts'
+;;; function for more information.
+
+(defun unknown-option (condition)
+  (format t "warning: ~s option is unknown!~%" (opts:option condition))
+  (invoke-restart 'opts:skip-option))
+
+(defmacro when-option ((options opt) &body body)
+  `(let ((it (getf ,options ,opt)))
+     (when it
+       ,@body)))
+
+(opts:define-opts
+  (:name :help
+   :description "print this help text"
+   :short #\h
+   :long "help")
+  (:name :start
+   :description "process starting with line NUM (1-indexed)"
+   :short #\s
+   :long "start-line"
+   :arg-parser #'parse-integer
+   :meta-var "NUM"))
+
 (defun main (argv)
   "Main function."
-  (let*
-    ((lines (get-file (nth 1 argv))))
-   (print-elements-of-list "Result" (reflow-dashed-lines lines))))
+  (multiple-value-bind (options free-args)
+      (handler-case
+          (handler-bind ((opts:unknown-option #'unknown-option))
+            (opts:get-opts))
+        (opts:missing-arg (condition)
+          (format t "fatal: option ~s needs an argument!~%"
+                  (opts:option condition)))
+        (opts:arg-parser-failed (condition)
+          (format t "fatal: cannot parse ~s as argument of ~s~%"
+                  (opts:raw-arg condition)
+                  (opts:option condition)))
+        (opts:missing-required-option (con)
+          (format t "fatal: ~a~%" con)
+          (opts:exit 1)))
+    ;; Here all options are checked independently, it's trivial to code any
+    ;; logic to process them.
+    (when-option (options :help)
+      (opts:describe
+       :prefix "example—program to demonstrate unix-opts library"
+       :suffix "so that's how it works…"
+       :usage-of "example.sh"
+       :args     "[FILE]")
+      (quit))
+    (when-option (options :start)
+      (format t "I see you want to start at ~A~%"
+              (getf options :start)))
+    (format t "free args: ~{~a~^, ~}~%" free-args)
+    (format nil "argv: ~A~%" argv)
+
+    ;; Nflow-specific stuff.
+    (let*
+        ((lines (get-file (nth 1 free-args)))
+         (start-0-indexed (- (getf options :start) 1))
+         (head (slice lines 0 start-0-indexed))
+         (tail (slice lines start-0-indexed (length lines))))
+      (format t "~A~%" head)
+      (print-elements-of-list (reflow-dashed-lines tail)))))
