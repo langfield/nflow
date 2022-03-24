@@ -484,8 +484,11 @@
     ;; Nflow-specific stuff.
     (let*
         ((lines (get-file (nth 0 free-args)))
-         (start-0-indexed (- (getf options :start) 1))
-         (head (slice lines 0 start-0-indexed))
-         (tail (slice lines start-0-indexed (length lines))))
-      (format t "~A~%" head)
-      (print-elements-of-list (reflow-dashed-lines tail)))))
+         (start-0-indexed 0))
+      (when-option (options :start)
+                   (setq start-0-indexed (- (getf options :start) 1)))
+      (let*
+          ((head (slice lines 0 start-0-indexed))
+           (tail (slice lines start-0-indexed (length lines))))
+        (format t "~A~%" head)
+        (print-elements-of-list (reflow-dashed-lines tail))))))
