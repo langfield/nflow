@@ -48,11 +48,9 @@
     (setq lst (cdr lst)))
   (terpri))
 
-
 (defun make-tree (item)
    "Create a new node with item."
    (cons (cons item nil) nil))
-
 
 (defun first-child (tree)
     " Access first child. "
@@ -60,23 +58,19 @@
       nil
       (cdr (car tree))))
 
-
 (defun children (tree)
     " Get children of root. "
    (if (null tree)
       nil
       (cdr tree)))
 
-
 (defun next-sibling (tree)
   " Get next sibling. "
    (cdr tree))
 
-
 (defun data (tree)
   " Get the data of the root node of a tree. "
    (car (car tree)))
-
 
 (defun replace-tree-data (tree data)
   " Return a copy of TREE with its data replaced with DATA. "
@@ -86,12 +80,10 @@
      (inner (cons data children)))
     (cons inner nil)))
 
-
 (defun add-child (tree child)
   " Add child to tree. "
    (setf (car tree) (append (car tree) child))
    tree)
-
 
 (defun count-leading-spaces (s)
   " Count leading spaces of a string. "
@@ -99,13 +91,11 @@
       ((left-trimmed-s (str:trim-left s)))
     (- (length s) (length left-trimmed-s))))
 
-
 (defun looks-like-node (node)
   (assert (equal (type-of node) 'cons))
   (assert (equal (type-of (car node)) 'cons))
   (assert (not (equal (type-of (car (car node))) 'cons)))
   t)
-
 
 (defun pop-from-parent-stack (parent-stack num-indents)
   " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
@@ -122,13 +112,11 @@
       (setq parent-stack (butlast parent-stack)))
     (list parent-stack parent)))
 
-
 (defun get-indent-size (delta indent-size)
   " Get the indent size. "
   (if (> indent-size 0)
     indent-size
     (abs delta)))
-
 
 (defun get-num-indents (indent-level old-indent-level indent-size line)
   " Compute NUM-INDENTS and INDENT-SIZE from the indent levels. "
@@ -151,22 +139,17 @@
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
 
-
 (defun get-children-as-roots (tree)
   (mapcar (lambda (item) (cons item nil)) (first-child tree)))
-
-
 
 (defun assert-is-cons-of-cons-of-strings (obj)
   (assert (consp obj))
   (assert (mapcar (lambda (elem) (assert (consp elem))) obj))
   (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) obj)))
 
-
 (defun assert-is-cons-of-strings (obj)
   (assert (consp obj))
   (assert (mapcar (lambda (elem) (assert (stringp elem))) obj)))
-
 
 (defun unparse-tree (tree)
   ; If tree is LEAF, return line with data.
@@ -213,9 +196,6 @@
             (setq result (concatenate 'list (cons (data tree) nil) result))
             (assert-is-cons-of-strings result)
             result))))))
-
-
-
 
 (defun parse-todo-tree (lst)
   " Parse a todolist into a tree, preserving hierarchy. "
@@ -319,17 +299,10 @@
   "Check if the data of TREE has a dash prefix, i.e. is checked off."
   (str:starts-with? "- " (data tree)))
 
-(defun and-fn (a b)
-  "Boolean binary AND function."
-  (if (and a b)
-    t
-    nil))
-
 (defun get-first-child-from-wrapped-children (wrapped-children)
   "Wrapped children are trees themselves, so we must unwrap them (CAR) and
   then wrap the list of the unwrapped children (CONS <...> NIL)."
   (car (cons (mapcar #'car wrapped-children) nil)))
-
 
 (defun resolve-todo-tree (tree)
   "Check off nodes if all their children are checked off.  This is a recursive
@@ -357,7 +330,7 @@
        (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
        (tree-copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
 
-       (all-children-are-checked-off (reduce #'and-fn resolved-children :key #'is-checked-off :initial-value t)))
+       (all-children-are-checked-off (reduce #'and resolved-children :key #'is-checked-off :initial-value t)))
 
       ; If all children are checked off, but root is not, then we check off the
       ; data of the root and return the resulting tree.
@@ -366,7 +339,6 @@
 
         ; Otherwise, we just return the tree with children resolved.
         tree-copy-with-resolved-children))))
-
 
 (defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
     "Check that there are no undashed lines above delimiter."
@@ -381,7 +353,6 @@
               (assert (equal line "")))))
         (setq i (1+ i)))
       t))
-
 
 (defun reflow-nontrivial-lines (lines)
   " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
@@ -428,8 +399,6 @@
     ; Concatenate everything, adding delimiter back in.
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
 
-
-
 (defun reflow-dashed-lines (lines)
   " Checks for zero-length files and files with no delimiter. "
   (if (equal (length lines) 0)
@@ -437,7 +406,6 @@
     (if (equal (position "" lines :test #'string=) nil)
       lines
       (reflow-nontrivial-lines lines))))
-
 
 (defun main (argv)
   " Main function. "
