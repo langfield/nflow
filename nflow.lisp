@@ -256,6 +256,28 @@
             (assert-is-cons-of-strings result)
             result))))))
 
+(defun get-checked-children (resolved-tree)
+  "Return a list[tree] of all the children whose data is checked-off, i.e. are
+  fully completed."
+  (remove-if-not #'is-checked-off (get-children-as-roots (copy-tree resolved-tree))))
+
+(defun get-unchecked-children (resolved-tree)
+  "Return a list[tree] of all the children whose data not is checked-off, i.e. are
+  at least partially incomplete."
+  (remove-if #'is-checked-off (get-children-as-roots (copy-tree resolved-tree))))
+
+(defun get-lines-to-move-above-delimiter (resolved-tree)
+  "Unparse each checked-off child into a list of lines, and then concatenate
+  all the lists to get one big list of lines."
+  ; list[string]
+  (reduce (lambda (a b) (concatenate 'list a b)) (mapcar #'unparse-tree (get-checked-children resolved-tree)) :initial-value '()))
+
+(defun get-lines-to-keep-below-delimiter (resolved-tree)
+  "Unparse each non-checked-off child into a list of lines, and then
+  concatenate all the lists to get one big list of lines."
+  ; list[string]
+  (reduce (lambda (a b) (concatenate 'list a b)) (mapcar #'unparse-tree (get-unchecked-children resolved-tree)) :initial-value '()))
+
 (defun parse-todo-tree (lst)
   "Parse a todolist into a tree, preserving hierarchy."
   (let*
@@ -359,45 +381,25 @@
   (let*
     (
       (position-of-empty-line nil)
-      (undashed-lines nil)
       (lines-above-delimiter nil)
       (lines-below-delimiter nil)
       (num-lines-below-delimiter nil)
-      (dashed-lines-below-delimiter nil)
-      (resolved-lines nil)
-      (tree nil))
+      (resolved-tree nil))
 
     ; Find the empty line (delimiter).
     (setq position-of-empty-line (position "" lines :test #'string=))
     (check-no-undashed-lines-above-delimiter lines position-of-empty-line)
 
-    ; Get the undashed lines (excluding the delimiter line).
-    (setq undashed-lines (rest (get-undashed-lines lines)))
-
-    ; Get lines above delimiter.
     (setq lines-above-delimiter (slice lines 0 position-of-empty-line))
-
-    ; Get number of lines below delimiter.
     (setq num-lines-below-delimiter (- (- (length lines) position-of-empty-line) 1))
-
-    ; Get a list of the lines below the delimiter.
     (setq lines-below-delimiter (slice lines (+ position-of-empty-line 1) num-lines-below-delimiter))
 
-    ; Get only the dashed lines below the delimiter.
-    (setq dashed-lines-below-delimiter (get-dashed-lines lines-below-delimiter))
-
-    ; Get a tree representation of the lines below delimiter.
-    (setq tree (parse-todo-tree lines-below-delimiter))
-
-    ; Print original items.
-    (print-elements-of-list "Original" lines)
-
-    ; Print resolved items.
-    (setq resolved-lines (unparse-tree (resolve-todo-tree tree)))
-    (print-elements-of-list "Resolved" resolved-lines)
+    ; Get a tree representation of the lines below delimiter, and then resolve
+    ; tree, i.e. propagate checks up towards the root.
+    (setq resolved-tree (resolve-todo-tree (parse-todo-tree lines-below-delimiter)))
 
     ; Concatenate everything, adding delimiter back in.
-    (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
+    (concatenate 'list lines-above-delimiter (get-lines-to-move-above-delimiter resolved-tree) '("") (get-lines-to-keep-below-delimiter resolved-tree))))
 
 (defun reflow-dashed-lines (lines)
   "Checks for zero-length files and files with no delimiter."
@@ -410,6 +412,5 @@
 (defun main (argv)
   "Main function."
   (let*
-    ((lines (get-file (nth 1 argv)))
-     (reflowed-lines (reflow-dashed-lines lines)))
-   (print-elements-of-list "Single-level implementation result" reflowed-lines)))
+    ((lines (get-file (nth 1 argv))))
+   (print-elements-of-list "Result" (reflow-dashed-lines lines))))
