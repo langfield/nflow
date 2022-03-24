@@ -136,10 +136,12 @@
     (let*
       ((i 0))
       (for:for ((line over lines))
-        (if (not (str:starts-with? "- " line))
+        (if (not (str:starts-with? "- " (str:trim line)))
           (progn
             (if (< i position-of-empty-line)
-              (error "Unchecked item: '~A' is above delimiter on line: ~A~%" line position-of-empty-line))
+              (progn
+                (format t "error: Unchecked item: '~A' is above delimiter on line: ~A~%" line position-of-empty-line)
+                (quit)))
             (if (equal i position-of-empty-line)
               (assert (equal line "")))))
         (setq i (1+ i)))
@@ -176,7 +178,9 @@
     ; If INDENT-DELTA is not a multiple of INDENT-SIZE, we have inconsistent
     ; indentation.
     (if (not (equal (mod indent-delta indent-size) 0))
-      (error "Inconsistent indentation on line with contents: ~A~%" line))
+      (progn
+        (format t "error: Inconsistent indentation on line with contents: ~A~%" line)
+        (quit)))
 
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
