@@ -97,6 +97,47 @@
   (assert (not (equal (type-of (car (car node))) 'cons)))
   t)
 
+(defun get-indent-size (delta indent-size)
+  " Get the indent size. "
+  (if (> indent-size 0)
+    indent-size
+    (abs delta)))
+
+(defun get-children-as-roots (tree)
+  (mapcar (lambda (item) (cons item nil)) (first-child tree)))
+
+(defun assert-is-cons-of-cons-of-strings (obj)
+  (assert (consp obj))
+  (assert (mapcar (lambda (elem) (assert (consp elem))) obj))
+  (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) obj)))
+
+(defun assert-is-cons-of-strings (obj)
+  (assert (consp obj))
+  (assert (mapcar (lambda (elem) (assert (stringp elem))) obj)))
+
+(defun is-checked-off (tree)
+  "Check if the data of TREE has a dash prefix, i.e. is checked off."
+  (str:starts-with? "- " (data tree)))
+
+(defun get-first-child-from-wrapped-children (wrapped-children)
+  "Wrapped children are trees themselves, so we must unwrap them (CAR) and
+  then wrap the list of the unwrapped children (CONS <...> NIL)."
+  (car (cons (mapcar #'car wrapped-children) nil)))
+
+(defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
+    "Check that there are no undashed lines above delimiter."
+    (let*
+      ((i 0))
+      (for:for ((line over lines))
+        (if (not (str:starts-with? "- " line))
+          (progn
+            (if (< i position-of-empty-line)
+              (error "Unchecked item: '~A' is above delimiter on line: ~A~%" line position-of-empty-line))
+            (if (equal i position-of-empty-line)
+              (assert (equal line "")))))
+        (setq i (1+ i)))
+      t))
+
 (defun pop-from-parent-stack (parent-stack num-indents)
   " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
   (assert (> num-indents 0))
@@ -111,12 +152,6 @@
       ; Remove PARENT from PARENT-STACK.
       (setq parent-stack (butlast parent-stack)))
     (list parent-stack parent)))
-
-(defun get-indent-size (delta indent-size)
-  " Get the indent size. "
-  (if (> indent-size 0)
-    indent-size
-    (abs delta)))
 
 (defun get-num-indents (indent-level old-indent-level indent-size line)
   " Compute NUM-INDENTS and INDENT-SIZE from the indent levels. "
@@ -139,17 +174,41 @@
     ; Return (NUM-INDENTS, INDENT-SIZE).
     (list (floor indent-delta indent-size) indent-size)))
 
-(defun get-children-as-roots (tree)
-  (mapcar (lambda (item) (cons item nil)) (first-child tree)))
+(defun resolve-todo-tree (tree)
+  "Check off nodes if all their children are checked off.  This is a recursive
+  function that will return a tree with the root node checked off if and only
+  if all its children are 'resolved', which it determines by making recursive
+  calls on all the children."
 
-(defun assert-is-cons-of-cons-of-strings (obj)
-  (assert (consp obj))
-  (assert (mapcar (lambda (elem) (assert (consp elem))) obj))
-  (assert (mapcar (lambda (elem) (mapcar (lambda (inner) (assert (stringp inner))) elem)) obj)))
+  ; If TREE is a leaf node:
+  (if (equal (first-child tree) nil)
 
-(defun assert-is-cons-of-strings (obj)
-  (assert (consp obj))
-  (assert (mapcar (lambda (elem) (assert (stringp elem))) obj)))
+    ; Return T if the leaf node is checked off, and NIL otherwise.
+    tree
+
+    ; Reduce the children with AND to determine if all of them are checked off or not.
+    (let*
+      ((tree-copy (copy-tree tree))
+
+       ; Recursively call RESOLVE-TODO-TREE to resolve each child.
+       (resolved-children (mapcar #'resolve-todo-tree (get-children-as-roots tree-copy)))
+
+       ; The first child contains all the data of all the children because of
+       ; how cons trees are structured, so we need only reconstruct the root
+       ; with MAKE-TREE and then attach our RESOLVED-FIRST-CHILD in order to
+       ; get a copy of the original tree with all its children resolved.
+       (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
+       (tree-copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
+
+       (all-children-are-checked-off (reduce (lambda (a b) (and a b)) resolved-children :key #'is-checked-off :initial-value t)))
+
+      ; If all children are checked off, but root is not, then we check off the
+      ; data of the root and return the resulting tree.
+      (if (and all-children-are-checked-off (not (is-checked-off tree-copy-with-resolved-children)))
+        (replace-tree-data tree-copy-with-resolved-children (str:concat "- " (data tree-copy)))
+
+        ; Otherwise, we just return the tree with children resolved.
+        tree-copy-with-resolved-children))))
 
 (defun unparse-tree (tree)
   ; If tree is LEAF, return line with data.
@@ -294,65 +353,6 @@
           (setq tree node)
           (assert (looks-like-node tree)))))
     tree))
-
-(defun is-checked-off (tree)
-  "Check if the data of TREE has a dash prefix, i.e. is checked off."
-  (str:starts-with? "- " (data tree)))
-
-(defun get-first-child-from-wrapped-children (wrapped-children)
-  "Wrapped children are trees themselves, so we must unwrap them (CAR) and
-  then wrap the list of the unwrapped children (CONS <...> NIL)."
-  (car (cons (mapcar #'car wrapped-children) nil)))
-
-(defun resolve-todo-tree (tree)
-  "Check off nodes if all their children are checked off.  This is a recursive
-  function that will return a tree with the root node checked off if and only
-  if all its children are 'resolved', which it determines by making recursive
-  calls on all the children."
-
-  ; If TREE is a leaf node:
-  (if (equal (first-child tree) nil)
-
-    ; Return T if the leaf node is checked off, and NIL otherwise.
-    tree
-
-    ; Reduce the children with AND to determine if all of them are checked off or not.
-    (let*
-      ((tree-copy (copy-tree tree))
-
-       ; Recursively call RESOLVE-TODO-TREE to resolve each child.
-       (resolved-children (mapcar #'resolve-todo-tree (get-children-as-roots tree-copy)))
-
-       ; The first child contains all the data of all the children because of
-       ; how cons trees are structured, so we need only reconstruct the root
-       ; with MAKE-TREE and then attach our RESOLVED-FIRST-CHILD in order to
-       ; get a copy of the original tree with all its children resolved.
-       (resolved-first-child (get-first-child-from-wrapped-children resolved-children))
-       (tree-copy-with-resolved-children (add-child (make-tree (data tree)) resolved-first-child))
-
-       (all-children-are-checked-off (reduce #'and resolved-children :key #'is-checked-off :initial-value t)))
-
-      ; If all children are checked off, but root is not, then we check off the
-      ; data of the root and return the resulting tree.
-      (if (and all-children-are-checked-off (not (is-checked-off tree-copy-with-resolved-children)))
-        (replace-tree-data tree-copy-with-resolved-children (str:concat "- " (data tree-copy)))
-
-        ; Otherwise, we just return the tree with children resolved.
-        tree-copy-with-resolved-children))))
-
-(defun check-no-undashed-lines-above-delimiter (lines position-of-empty-line)
-    "Check that there are no undashed lines above delimiter."
-    (let*
-      ((i 0))
-      (for:for ((line over lines))
-        (if (not (str:starts-with? "- " line))
-          (progn
-            (if (< i position-of-empty-line)
-              (error "Unchecked item: '~A' is above delimiter on line: ~A~%" line position-of-empty-line))
-            (if (equal i position-of-empty-line)
-              (assert (equal line "")))))
-        (setq i (1+ i)))
-      t))
 
 (defun reflow-nontrivial-lines (lines)
   " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
