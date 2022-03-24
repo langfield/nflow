@@ -53,8 +53,7 @@
   "Print each element of LST on a line of its own."
   (loop while lst do
     (format t "~A~%" (car lst))
-    (setq lst (cdr lst)))
-  (terpri))
+    (setq lst (cdr lst))))
 
 (defun make-tree (item)
    "Create a new node with item."
@@ -484,11 +483,13 @@
     ;; Nflow-specific stuff.
     (let*
         ((lines (get-file (nth 0 free-args)))
-         (start-0-indexed 0))
+         (start-0-indexed 0)
+         (head '()))
       (when-option (options :start)
                    (setq start-0-indexed (- (getf options :start) 1)))
+      (if (> start-0-indexed 0)
+          (setq head (slice lines 0 start-0-indexed)))
       (let*
-          ((head (slice lines 0 start-0-indexed))
-           (tail (slice lines start-0-indexed (length lines))))
-        (format t "~A~%" head)
+           ((tail (slice lines start-0-indexed (length lines))))
+        (print-elements-of-list head)
         (print-elements-of-list (reflow-dashed-lines tail))))))
