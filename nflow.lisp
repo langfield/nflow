@@ -439,7 +439,7 @@
    :short #\h
    :long "help")
   (:name :start
-   :description "process starting with line NUM (1-indexed)"
+   :description "process todos starting from line NUM (1-indexed)"
    :short #\s
    :long "start-line"
    :arg-parser #'parse-integer
@@ -465,20 +465,25 @@
     ;; logic to process them.
     (when-option (options :help)
       (opts:describe
-       :prefix "example—program to demonstrate unix-opts library"
+       :prefix "program for keeping track of things to do"
        :suffix "so that's how it works…"
-       :usage-of "example.sh"
+       :usage-of "nflow"
        :args     "[FILE]")
       (quit))
-    (when-option (options :start)
-      (format t "I see you want to start at ~A~%"
-              (getf options :start)))
-    (format t "free args: ~{~a~^, ~}~%" free-args)
     (format nil "argv: ~A~%" argv)
+
+    (if (< (length free-args) 1)
+      (progn
+        (format t "Missing [FILE] argument~%")
+        (quit)))
+    (if (> (length free-args) 1)
+      (progn
+        (format t "Too many arguments. Pass exactly one [FILE]~%")
+        (quit)))
 
     ;; Nflow-specific stuff.
     (let*
-        ((lines (get-file (nth 1 free-args)))
+        ((lines (get-file (nth 0 free-args)))
          (start-0-indexed (- (getf options :start) 1))
          (head (slice lines 0 start-0-indexed))
          (tail (slice lines start-0-indexed (length lines))))
