@@ -5,43 +5,43 @@
 (ql:quickload :draw-cons-tree)
 
 (defun get-file (filename)
-  " Read in a file. "
+  "Read in a file."
   (with-open-file (stream filename)
     (loop for line = (read-line stream nil)
       while line
       collect line)))
 
 (defun starts-with (prefix)
-  " Check whether STR starts with PREFIX. "
+  "Check whether STR starts with PREFIX."
   (defun starts-with-prefix (str)
     (str:starts-with? prefix str)))
 
 (defun get-undashed-lines (lines)
-  " Returns a list of the undashed lines. "
+  "Returns a list of the undashed lines."
   (cond
     ((equal (length lines) 0) '())
     (t (remove-if (starts-with "- ") lines))))
 
 (defun get-dashed-lines (lines)
-  " Returns a list of the dashed lines. "
+  "Returns a list of the dashed lines."
   (cond
     ((equal (length lines) 0) '())
     (t (remove-if-not (starts-with "- ") lines))))
 
 (defun get-n-items (lst num)
-  " Get ``lst[:num]``. "
+  "Get ``lst[:num]``."
   (if (> num 0)
     (cons (car lst) (get-n-items (cdr lst) (- num 1)))
     '()))
 
 (defun slice (lst start size)
-  " Take a slice of ``lst`` of the form ``lst[start:start + size]``. "
+  "Take a slice of ``lst`` of the form ``lst[start:start + size]``."
   (if (> start 0)
     (slice (cdr lst) (- start 1) size)
     (get-n-items lst size)))
 
 (defun print-elements-of-list (name lst)
-  " Print each element of LST on a line of its own. "
+  "Print each element of LST on a line of its own."
   (format t "~A (length ~A):~%" name (length lst))
   (loop while lst do
     (format t "~A~%" (car lst))
@@ -53,27 +53,27 @@
    (cons (cons item nil) nil))
 
 (defun first-child (tree)
-    " Access first child. "
+    "Access first child."
    (if (null tree)
       nil
       (cdr (car tree))))
 
 (defun children (tree)
-    " Get children of root. "
+    "Get children of root."
    (if (null tree)
       nil
       (cdr tree)))
 
 (defun next-sibling (tree)
-  " Get next sibling. "
+  "Get next sibling."
    (cdr tree))
 
 (defun data (tree)
-  " Get the data of the root node of a tree. "
+  "Get the data of the root node of a tree."
    (car (car tree)))
 
 (defun replace-tree-data (tree data)
-  " Return a copy of TREE with its data replaced with DATA. "
+  "Return a copy of TREE with its data replaced with DATA."
   (let*
     ((copy (copy-tree tree))
      (children (cdr (car copy)))
@@ -81,12 +81,12 @@
     (cons inner nil)))
 
 (defun add-child (tree child)
-  " Add child to tree. "
+  "Add child to tree."
    (setf (car tree) (append (car tree) child))
    tree)
 
 (defun count-leading-spaces (s)
-  " Count leading spaces of a string. "
+  "Count leading spaces of a string."
   (let*
       ((left-trimmed-s (str:trim-left s)))
     (- (length s) (length left-trimmed-s))))
@@ -98,7 +98,7 @@
   t)
 
 (defun get-indent-size (delta indent-size)
-  " Get the indent size. "
+  "Get the indent size."
   (if (> indent-size 0)
     indent-size
     (abs delta)))
@@ -139,7 +139,7 @@
       t))
 
 (defun pop-from-parent-stack (parent-stack num-indents)
-  " Go up NUM-INDENTS levels, returning the parent and the parent-stack. "
+  "Go up NUM-INDENTS levels, returning the parent and the parent-stack."
   (assert (> num-indents 0))
   (let*
     ((parent nil))
@@ -154,7 +154,7 @@
     (list parent-stack parent)))
 
 (defun get-num-indents (indent-level old-indent-level indent-size line)
-  " Compute NUM-INDENTS and INDENT-SIZE from the indent levels. "
+  "Compute NUM-INDENTS and INDENT-SIZE from the indent levels."
   (let*
     ; Difference between the indent level and the previous indent level.
     ((indent-delta 0))
@@ -257,7 +257,7 @@
             result))))))
 
 (defun parse-todo-tree (lst)
-  " Parse a todolist into a tree, preserving hierarchy. "
+  "Parse a todolist into a tree, preserving hierarchy."
   (let*
     (
       ; Initialize TREE with a dummy root.
@@ -355,7 +355,7 @@
     tree))
 
 (defun reflow-nontrivial-lines (lines)
-  " Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved. "
+  "Return the reflowed list of lines, with dashed lines moved above the delimiter, order-preserved."
   (let*
     (
       (position-of-empty-line nil)
@@ -400,7 +400,7 @@
     (concatenate 'list lines-above-delimiter dashed-lines-below-delimiter '("") undashed-lines)))
 
 (defun reflow-dashed-lines (lines)
-  " Checks for zero-length files and files with no delimiter. "
+  "Checks for zero-length files and files with no delimiter."
   (if (equal (length lines) 0)
     '()
     (if (equal (position "" lines :test #'string=) nil)
@@ -408,7 +408,7 @@
       (reflow-nontrivial-lines lines))))
 
 (defun main (argv)
-  " Main function. "
+  "Main function."
   (let*
     ((lines (get-file (nth 1 argv)))
      (reflowed-lines (reflow-dashed-lines lines)))
